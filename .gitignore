@@ -37,3 +37,5 @@ Thumbs.db
 *debug*.php
 *example*.php
 *test*.php
+/config/config.php
+.history/

@@ -21,11 +21,11 @@ class Auth
     public function login($username, $password)
     {
         try {
-            // Get user from database
+            // Get user from database (prepared statement - prevents SQL injection)
             $sql = "SELECT id, username, password, full_name, email, role, status, 
                            created_at, last_login 
                     FROM users 
-                    WHERE username = '" . $username . "' AND status = 'active'";
+                    WHERE username = ? AND status = 'active'";
 
             $user = $this->db->fetchOne($sql, [$username]);
 
