@@ -1,0 +1,39 @@
+# Environment files
+.env
+.env.local
+
+# Composer
+/vendor/
+composer.lock
+
+# Node
+/node_modules/
+
+# Logs
+*.log
+logs/
+
+# Cache
+/cache/
+/tmp/
+
+# Uploads (agar user uploads ho)
+uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# XAMPP / Local configs
+.htaccess
+
+#some fixed files
+*.md
+*fix*.php
+*debug*.php
+*example*.php
+*test*.php

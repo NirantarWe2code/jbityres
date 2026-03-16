@@ -1,0 +1,443 @@
+/**
+ * Custom Styles for Final Report System
+ */
+
+/* Dark theme variables */
+:root {
+    --bg-color: #1a1a1a;
+    --surface-color: #2d2d2d;
+    --card-color: #363636;
+    --border-color: #404040;
+    --text-color: #f8fafc;
+    --muted-color: #94a3b8;
+    --teal-color: #14b8a6;
+    --gold-color: #f59e0b;
+    --rose-color: #f43f5e;
+    --blue-color: #3b82f6;
+    --purple-color: #8b5cf6;
+    --green-color: #10b981;
+}
+
+/* General styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Card enhancements */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0;
+    font-weight: 600;
+}
+
+/* Statistics cards */
+.stats-card {
+    background: linear-gradient(135deg, var(--teal-color), #0f9488);
+    color: white;
+    border: none;
+}
+
+.stats-card .card-body {
+    padding: 1.5rem;
+}
+
+.stats-card .stats-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+.stats-card .stats-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stats-card .stats-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 1rem 0;
+}
+
+.chart-container canvas {
+    max-height: 100%;
+}
+
+/* Table enhancements */
+.table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    border: none;
+    font-weight: 600;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-color: var(--border-color);
+}
+
+/* Striped rows - both odd & even with same readable white text */
+.table-striped tbody tr td {
+    color: #f0fdfa !important;
+}
+
+.table-striped tbody tr:nth-of-type(odd) td {
+    background-color: #2d2d2d !important;
+    color: #f0fdfa !important;
+}
+
+.table-striped tbody tr:nth-of-type(even) td {
+    background-color: #363636 !important;
+    color: #f0fdfa !important;
+}
+
+/* Hover - light text on teal highlight */
+.table-hover tbody tr:hover {
+    background-color: rgba(20, 184, 166, 0.35) !important;
+    color: #f0fdfa !important;
+}
+
+.table-hover tbody tr:hover td {
+    color: #f0fdfa !important;
+}
+
+.table-hover tbody tr:hover .btn {
+    color: inherit;
+}
+
+/* Button enhancements */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--teal-color), #0f9488);
+    border: none;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--green-color), #059669);
+    border: none;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--gold-color), #d97706);
+    border: none;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--rose-color), #e11d48);
+    border: none;
+}
+
+/* Modal - dark theme to match app */
+.modal-content {
+    background-color: var(--card-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.modal-header {
+    background-color: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.modal-header .modal-title {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.modal-body {
+    background-color: var(--card-color);
+    color: var(--text-color);
+}
+
+.modal-footer {
+    background-color: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+}
+
+/* View modal - labels & values clearly visible */
+.modal-body .form-label {
+    color: #cbd5e1 !important;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-body .form-control-plaintext {
+    color: var(--text-color) !important;
+    font-size: 1rem;
+}
+
+.modal .btn-close {
+    filter: invert(1);
+    opacity: 0.8;
+}
+
+.modal .btn-close:hover {
+    opacity: 1;
+}
+
+/* Form enhancements */
+.form-control {
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    background-color: var(--card-color);
+    color: var(--text-color);
+    padding: 0.75rem;
+}
+
+.form-control:focus {
+    border-color: var(--teal-color);
+    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.25);
+    background-color: var(--card-color);
+    color: var(--text-color);
+}
+
+.form-select {
+    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    background-color: var(--card-color);
+    color: var(--text-color);
+}
+
+.form-select:focus {
+    border-color: var(--teal-color);
+    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.25);
+}
+
+/* Badge enhancements */
+.badge {
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+}
+
+.badge.badge-success {
+    background-color: var(--green-color);
+}
+
+.badge.badge-warning {
+    background-color: var(--gold-color);
+    color: #000;
+}
+
+.badge.badge-danger {
+    background-color: var(--rose-color);
+}
+
+/* Pagination */
+.pagination .page-link {
+    background-color: var(--card-color);
+    border-color: var(--border-color);
+    color: var(--text-color);
+    border-radius: 6px;
+    margin: 0 2px;
+}
+
+.pagination .page-link:hover {
+    background-color: var(--teal-color);
+    border-color: var(--teal-color);
+    color: white;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--teal-color);
+    border-color: var(--teal-color);
+}
+
+/* Sidebar enhancements */
+.main-sidebar {
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar .nav-link {
+    border-radius: 8px;
+    margin: 2px 8px;
+    transition: all 0.2s ease-in-out;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(20, 184, 166, 0.1);
+}
+
+.sidebar .nav-link.active {
+    background: linear-gradient(135deg, var(--teal-color), #0f9488);
+    color: white;
+}
+
+/* Navbar enhancements */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading overlay */
+.loading-overlay {
+    backdrop-filter: blur(2px);
+}
+
+.loading-content {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Toast enhancements */
+.toast {
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Filter section */
+.filter-section {
+    background-color: var(--card-color);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.filter-section .form-label {
+    color: var(--text-color);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+/* Action buttons */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-buttons .btn {
+    padding: 0.375rem 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stats-card .stats-value {
+        font-size: 1.5rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* Utility classes */
+.text-teal {
+    color: var(--teal-color) !important;
+}
+
+.text-gold {
+    color: var(--gold-color) !important;
+}
+
+.text-rose {
+    color: var(--rose-color) !important;
+}
+
+.bg-teal {
+    background-color: var(--teal-color) !important;
+}
+
+.bg-gold {
+    background-color: var(--gold-color) !important;
+}
+
+.bg-rose {
+    background-color: var(--rose-color) !important;
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--surface-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-color);
+}

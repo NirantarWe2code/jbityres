@@ -1,0 +1,448 @@
+<?php
+/**
+ * Sales Data Management Class
+ */
+
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/Database.php';
+
+class SalesData {
+    private $db;
+    
+    public function __construct() {
+        $this->db = Database::getInstance();
+    }
+    
+    /**
+     * Get all sales records with pagination and filtering
+     */
+    public function getAllRecords($page = 1, $limit = 25, $filters = []) {
+        try {
+            $offset = ($page - 1) * $limit;
+            
+            // Build WHERE clause
+            $whereConditions = [];
+            $params = [];
+            
+            if (!empty($filters['search'])) {
+                $whereConditions[] = "(invoice_num LIKE ? OR business_name LIKE ? OR product LIKE ? OR sales_rep LIKE ?)";
+                $searchTerm = '%' . $filters['search'] . '%';
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+            }
+            
+            if (!empty($filters['date_from'])) {
+                $whereConditions[] = "dated >= ?";
+                $params[] = $filters['date_from'];
+            }
+            
+            if (!empty($filters['date_to'])) {
+                $whereConditions[] = "dated <= ?";
+                $params[] = $filters['date_to'];
+            }
+            
+            if (!empty($filters['business_name'])) {
+                $whereConditions[] = "business_name = ?";
+                $params[] = $filters['business_name'];
+            }
+            
+            if (!empty($filters['sales_rep'])) {
+                $whereConditions[] = "sales_rep = ?";
+                $params[] = $filters['sales_rep'];
+            }
+            
+            if (!empty($filters['product'])) {
+                $whereConditions[] = "product LIKE ?";
+                $params[] = '%' . $filters['product'] . '%';
+            }
+            
+            $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+            
+            // Get total count
+            $countSql = "SELECT COUNT(*) as total FROM sales_data $whereClause";
+            $totalResult = $this->db->fetchOne($countSql, $params);
+            $totalRecords = (int)$totalResult['total'];
+            
+            // Build ORDER BY clause
+            $orderBy = 'ORDER BY dated DESC, id DESC';
+            if (!empty($filters['sort_column']) && !empty($filters['sort_direction'])) {
+                $allowedColumns = ['invoice_num', 'dated', 'business_name', 'product', 'quantity', 'unit_price', 'line_revenue', 'gross_profit', 'gp_margin'];
+                $allowedDirections = ['ASC', 'DESC'];
+                
+                if (in_array($filters['sort_column'], $allowedColumns) && in_array(strtoupper($filters['sort_direction']), $allowedDirections)) {
+                    $orderBy = "ORDER BY {$filters['sort_column']} {$filters['sort_direction']}, id DESC";
+                }
+            }
+            
+            // Get records
+            $sql = "SELECT id, invoice_num, dated, business_name, sales_rep, product, 
+                           quantity, unit_price, line_revenue, gross_profit, gp_margin,
+                           created_at, updated_at
+                    FROM sales_data 
+                    $whereClause 
+                    $orderBy 
+                    LIMIT ? OFFSET ?";
+            
+            $params[] = $limit;
+            $params[] = $offset;
+            
+            $records = $this->db->fetchAll($sql, $params);
+            
+            return [
+                'success' => true,
+                'data' => $records,
+                'pagination' => [
+                    'current_page' => $page,
+                    'total_pages' => ceil($totalRecords / $limit),
+                    'total_records' => $totalRecords,
+                    'records_per_page' => $limit
+                ]
+            ];
+            
+        } catch (Exception $e) {
+            error_log('Get sales records error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to fetch sales records'
+            ];
+        }
+    }
+    
+    /**
+     * Get single sales record by ID
+     */
+    public function getRecordById($id) {
+        try {
+            $sql = "SELECT id, invoice_num, dated, business_name, sales_rep, product, 
+                           quantity, unit_price, line_revenue, gross_profit, gp_margin,
+                           notes, created_at, updated_at
+                    FROM sales_data 
+                    WHERE id = ?";
+            
+            $record = $this->db->fetchOne($sql, [$id]);
+            
+            if ($record) {
+                return [
+                    'success' => true,
+                    'data' => $record
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Record not found'
+                ];
+            }
+            
+        } catch (Exception $e) {
+            error_log('Get sales record error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to fetch sales record'
+            ];
+        }
+    }
+    
+    /**
+     * Create new sales record
+     */
+    public function createRecord($data) {
+        try {
+            // Validate required fields
+            $validation = $this->validateRecordData($data);
+            if (!$validation['valid']) {
+                return [
+                    'success' => false,
+                    'message' => $validation['message']
+                ];
+            }
+            
+            // Calculate derived fields
+            $lineRevenue = $data['quantity'] * $data['unit_price'];
+            $grossProfit = $lineRevenue - ($data['cost_price'] ?? 0);
+            $gpMargin = $lineRevenue > 0 ? ($grossProfit / $lineRevenue) * 100 : 0;
+            
+            $sql = "INSERT INTO sales_data (
+                        invoice_num, dated, business_name, sales_rep, product,
+                        quantity, unit_price, line_revenue, gross_profit, gp_margin,
+                        notes, created_by, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            
+            $result = $this->db->execute($sql, [
+                $data['invoice_num'],
+                $data['dated'],
+                $data['business_name'],
+                $data['sales_rep'],
+                $data['product'],
+                $data['quantity'],
+                $data['unit_price'],
+                $lineRevenue,
+                $grossProfit,
+                $gpMargin,
+                $data['notes'] ?? '',
+                getCurrentUser()['id'] ?? 1
+            ]);
+            
+            if ($result['affected_rows'] > 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Sales record created successfully',
+                    'record_id' => $result['insert_id']
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to create sales record'
+                ];
+            }
+            
+        } catch (Exception $e) {
+            error_log('Create sales record error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to create sales record'
+            ];
+        }
+    }
+    
+    /**
+     * Update sales record
+     */
+    public function updateRecord($id, $data) {
+        try {
+            // Validate required fields
+            $validation = $this->validateRecordData($data);
+            if (!$validation['valid']) {
+                return [
+                    'success' => false,
+                    'message' => $validation['message']
+                ];
+            }
+            
+            // Calculate derived fields
+            $lineRevenue = $data['quantity'] * $data['unit_price'];
+            $grossProfit = $lineRevenue - ($data['cost_price'] ?? 0);
+            $gpMargin = $lineRevenue > 0 ? ($grossProfit / $lineRevenue) * 100 : 0;
+            
+            $sql = "UPDATE sales_data SET 
+                        invoice_num = ?, dated = ?, business_name = ?, sales_rep = ?, 
+                        product = ?, quantity = ?, unit_price = ?, line_revenue = ?, 
+                        gross_profit = ?, gp_margin = ?, notes = ?, updated_at = NOW()
+                    WHERE id = ?";
+            
+            $result = $this->db->execute($sql, [
+                $data['invoice_num'],
+                $data['dated'],
+                $data['business_name'],
+                $data['sales_rep'],
+                $data['product'],
+                $data['quantity'],
+                $data['unit_price'],
+                $lineRevenue,
+                $grossProfit,
+                $gpMargin,
+                $data['notes'] ?? '',
+                $id
+            ]);
+            
+            if ($result['affected_rows'] > 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Sales record updated successfully'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'No changes made or record not found'
+                ];
+            }
+            
+        } catch (Exception $e) {
+            error_log('Update sales record error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to update sales record'
+            ];
+        }
+    }
+    
+    /**
+     * Delete sales record
+     */
+    public function deleteRecord($id) {
+        try {
+            $sql = "DELETE FROM sales_data WHERE id = ?";
+            $result = $this->db->execute($sql, [$id]);
+            
+            if ($result['affected_rows'] > 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Sales record deleted successfully'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Record not found'
+                ];
+            }
+            
+        } catch (Exception $e) {
+            error_log('Delete sales record error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to delete sales record'
+            ];
+        }
+    }
+    
+    /**
+     * Get dashboard statistics
+     */
+    public function getDashboardStats($filters = []) {
+        try {
+            // Build WHERE clause for filtering
+            $whereConditions = [];
+            $params = [];
+            
+            if (!empty($filters['date_from'])) {
+                $whereConditions[] = "dated >= ?";
+                $params[] = $filters['date_from'];
+            }
+            
+            if (!empty($filters['date_to'])) {
+                $whereConditions[] = "dated <= ?";
+                $params[] = $filters['date_to'];
+            }
+            
+            $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+            
+            // Get main statistics
+            $sql = "SELECT 
+                        COUNT(*) as total_sales,
+                        SUM(quantity) as total_units,
+                        SUM(line_revenue) as total_revenue,
+                        SUM(gross_profit) as total_profit,
+                        AVG(gp_margin) as avg_margin,
+                        COUNT(DISTINCT business_name) as unique_businesses,
+                        COUNT(DISTINCT sales_rep) as unique_reps
+                    FROM sales_data $whereClause";
+            
+            $stats = $this->db->fetchOne($sql, $params);
+            
+            // Get top products
+            $topProductsSql = "SELECT product, SUM(line_revenue) as revenue, COUNT(*) as sales_count
+                              FROM sales_data $whereClause
+                              GROUP BY product 
+                              ORDER BY revenue DESC 
+                              LIMIT 5";
+            
+            $topProducts = $this->db->fetchAll($topProductsSql, $params);
+            
+            // Get top businesses
+            $topBusinessesSql = "SELECT business_name, SUM(line_revenue) as revenue, COUNT(*) as sales_count
+                                FROM sales_data $whereClause
+                                GROUP BY business_name 
+                                ORDER BY revenue DESC 
+                                LIMIT 5";
+            
+            $topBusinesses = $this->db->fetchAll($topBusinessesSql, $params);
+            
+            // Get sales by month (last 12 months)
+            $monthlySalesSql = "SELECT 
+                                   DATE_FORMAT(dated, '%Y-%m') as month,
+                                   SUM(line_revenue) as revenue,
+                                   COUNT(*) as sales_count
+                               FROM sales_data 
+                               WHERE dated >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                               GROUP BY DATE_FORMAT(dated, '%Y-%m')
+                               ORDER BY month";
+            
+            $monthlySales = $this->db->fetchAll($monthlySalesSql);
+            
+            return [
+                'success' => true,
+                'data' => [
+                    'stats' => $stats,
+                    'top_products' => $topProducts,
+                    'top_businesses' => $topBusinesses,
+                    'monthly_sales' => $monthlySales
+                ]
+            ];
+            
+        } catch (Exception $e) {
+            error_log('Get dashboard stats error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to fetch dashboard statistics'
+            ];
+        }
+    }
+    
+    /**
+     * Get filter options
+     */
+    public function getFilterOptions() {
+        try {
+            // Get unique business names
+            $businessSql = "SELECT DISTINCT business_name FROM sales_data WHERE business_name IS NOT NULL ORDER BY business_name";
+            $businesses = $this->db->fetchAll($businessSql);
+            
+            // Get unique sales reps
+            $repsSql = "SELECT DISTINCT sales_rep FROM sales_data WHERE sales_rep IS NOT NULL ORDER BY sales_rep";
+            $salesReps = $this->db->fetchAll($repsSql);
+            
+            // Get unique products
+            $productsSql = "SELECT DISTINCT product FROM sales_data WHERE product IS NOT NULL ORDER BY product";
+            $products = $this->db->fetchAll($productsSql);
+            
+            return [
+                'success' => true,
+                'data' => [
+                    'businesses' => array_column($businesses, 'business_name'),
+                    'sales_reps' => array_column($salesReps, 'sales_rep'),
+                    'products' => array_column($products, 'product')
+                ]
+            ];
+            
+        } catch (Exception $e) {
+            error_log('Get filter options error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to fetch filter options'
+            ];
+        }
+    }
+    
+    /**
+     * Validate record data
+     */
+    private function validateRecordData($data) {
+        if (empty($data['invoice_num'])) {
+            return ['valid' => false, 'message' => 'Invoice number is required'];
+        }
+        
+        if (empty($data['dated'])) {
+            return ['valid' => false, 'message' => 'Date is required'];
+        }
+        
+        if (empty($data['business_name'])) {
+            return ['valid' => false, 'message' => 'Business name is required'];
+        }
+        
+        if (empty($data['product'])) {
+            return ['valid' => false, 'message' => 'Product is required'];
+        }
+        
+        if (!isset($data['quantity']) || $data['quantity'] <= 0) {
+            return ['valid' => false, 'message' => 'Valid quantity is required'];
+        }
+        
+        if (!isset($data['unit_price']) || $data['unit_price'] <= 0) {
+            return ['valid' => false, 'message' => 'Valid unit price is required'];
+        }
+        
+        return ['valid' => true];
+    }
+}
+?>

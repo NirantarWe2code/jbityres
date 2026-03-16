@@ -1,0 +1,624 @@
+/**
+ * Sales Controller JavaScript
+ */
+
+class SalesController {
+    constructor() {
+        this.currentPage = 1;
+        this.itemsPerPage = 25;
+        this.sortColumn = null;
+        this.sortDirection = 'asc';
+        this.filters = {};
+        this.editingId = null;
+    }
+    
+    init() {
+        console.log('Sales controller initializing...');
+        this.setupEventListeners();
+        this.loadFilterOptions();
+        this.loadSalesData();
+    }
+    
+    setupEventListeners() {
+        // Filter form submission
+        $('#salesFilters').on('submit', (e) => {
+            e.preventDefault();
+            this.applyFilters();
+        });
+        
+        // Reset filters
+        $('#resetFilters').on('click', () => {
+            this.resetFilters();
+        });
+        
+        // Add record button
+        $('#addRecord').on('click', () => {
+            this.showAddModal();
+        });
+        
+        // Sales form submission
+        $('#salesForm').on('submit', (e) => {
+            e.preventDefault();
+            this.saveRecord();
+        });
+        
+        // Search input with debounce
+        $('#searchTerm').on('input', Utils.debounce(() => {
+            this.applyFilters();
+        }, 500));
+        
+        // Date filters
+        $('#dateFrom, #dateTo').on('change', () => {
+            this.applyFilters();
+        });
+        
+        // Select filters
+        $('#businessFilter, #salesRepFilter').on('change', () => {
+            this.applyFilters();
+        });
+        
+        // Product filter with debounce
+        $('#productFilter').on('input', Utils.debounce(() => {
+            this.applyFilters();
+        }, 500));
+        
+        // Table sorting
+        $('#salesTable th[data-sort]').on('click', (e) => {
+            const column = $(e.currentTarget).data('sort');
+            this.handleSort(column);
+        });
+        
+        // Export buttons
+        $('#exportCsv').on('click', () => this.exportData('csv'));
+        $('#exportExcel').on('click', () => this.exportData('excel'));
+    }
+    
+    async loadFilterOptions() {
+        try {
+            const response = await AjaxHelper.get(
+                window.AppConfig.baseUrl + '/ajax/sales.php',
+                { action: 'filter_options' }
+            );
+            
+            if (response.success) {
+                this.populateFilterDropdowns(response.data);
+            }
+        } catch (error) {
+            console.error('Failed to load filter options:', error);
+        }
+    }
+    
+    populateFilterDropdowns(data) {
+        // Populate business filter
+        const businessSelect = document.getElementById('businessFilter');
+        businessSelect.innerHTML = '<option value="">All Businesses</option>';
+        data.businesses.forEach(business => {
+            const option = document.createElement('option');
+            option.value = business;
+            option.textContent = business;
+            businessSelect.appendChild(option);
+        });
+        
+        // Populate sales rep filter
+        const salesRepSelect = document.getElementById('salesRepFilter');
+        salesRepSelect.innerHTML = '<option value="">All Sales Reps</option>';
+        data.sales_reps.forEach(rep => {
+            const option = document.createElement('option');
+            option.value = rep;
+            option.textContent = rep;
+            salesRepSelect.appendChild(option);
+        });
+    }
+    
+    applyFilters() {
+        const formData = new FormData(document.getElementById('salesFilters'));
+        this.filters = {};
+        
+        for (let [key, value] of formData.entries()) {
+            if (value.trim()) {
+                this.filters[key] = value.trim();
+            }
+        }
+        
+        this.currentPage = 1; // Reset to first page
+        console.log('Applying filters:', this.filters);
+        this.loadSalesData();
+    }
+    
+    resetFilters() {
+        document.getElementById('salesFilters').reset();
+        this.filters = {};
+        this.currentPage = 1;
+        this.loadSalesData();
+    }
+    
+    async loadSalesData() {
+        try {
+            const params = {
+                action: 'list',
+                page: this.currentPage,
+                limit: this.itemsPerPage,
+                sort_column: this.sortColumn,
+                sort_direction: this.sortDirection,
+                ...this.filters
+            };
+            
+            console.log('Loading sales data with params:', params);
+            
+            const response = await AjaxHelper.get(
+                window.AppConfig.baseUrl + '/ajax/sales.php',
+                params
+            );
+            
+            if (response.success) {
+                this.    displaySalesData(records) {
+        const tbody = document.querySelector('#salesTable tbody');
+        if (!tbody) {
+            console.error('Sales table tbody not found');
+            return;
+        }
+        
+        if (!records || records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted">No sales records found</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        records.forEach(record => {
+            html += `
+                <tr>
+                    <td>${record.id || ''}</td>
+                    <td>${record.invoice_num || ''}</td>
+                    <td>${record.dated ? new Date(record.dated).toLocaleDateString() : ''}</td>
+                    <td title="${record.business_name || ''}">${this.truncateText(record.business_name || '', 20)}</td>
+                    <td>${record.sales_rep || ''}</td>
+                    <td title="${record.product || ''}">${this.truncateText(record.product || '', 25)}</td>
+                    <td class="text-right">${parseFloat(record.quantity || 0).toFixed(2)}</td>
+                    <td class="text-right">$${parseFloat(record.unit_price || 0).toFixed(2)}</td>
+                    <td class="text-right">$${parseFloat(record.line_revenue || 0).toFixed(2)}</td>
+                    <td class="text-right">$${parseFloat(record.gross_profit || 0).toFixed(2)}</td>
+                    <td class="text-right">${parseFloat(record.gp_margin || 0).toFixed(1)}%</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-info btn-sm" onclick="salesController.viewRecord(${record.id})" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="salesController.editRecord(${record.id})" title="Edit Record">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="salesController.deleteRecord(${record.id})" title="Delete Record">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html;
+    }
+    
+    truncateText(text, maxLength) {
+        if (!text) return '';
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    }
+            
+        } catch (error) {
+            console.error('Sales data load error:', error);
+            Utils.showToast('Failed to load sales data: ' + error.message, 'error');
+            this.showErrorState();
+        }
+    }
+    
+        displaySalesData(records) {
+        const tbody = document.querySelector('#salesTable tbody');
+        if (!tbody) {
+            console.error('Sales table tbody not found');
+            return;
+        }
+        
+        if (!records || records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted">No sales records found</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        records.forEach(record => {
+            html += `
+                <tr>
+                    <td>${record.id || ''}</td>
+                    <td>${record.invoice_num || ''}</td>
+                    <td>${record.dated ? new Date(record.dated).toLocaleDateString() : ''}</td>
+                    <td title="${record.business_name || ''}">${this.truncateText(record.business_name || '', 20)}</td>
+                    <td>${record.sales_rep || ''}</td>
+                    <td title="${record.product || ''}">${this.truncateText(record.product || '', 25)}</td>
+                    <td class="text-right">${parseFloat(record.quantity || 0).toFixed(2)}</td>
+                    <td class="text-right">$${parseFloat(record.unit_price || 0).toFixed(2)}</td>
+                    <td class="text-right">$${parseFloat(record.line_revenue || 0).toFixed(2)}</td>
+                    <td class="text-right">$${parseFloat(record.gross_profit || 0).toFixed(2)}</td>
+                    <td class="text-right">${parseFloat(record.gp_margin || 0).toFixed(1)}%</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-info btn-sm" onclick="salesController.viewRecord(${record.id})" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="salesController.editRecord(${record.id})" title="Edit Record">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="salesController.deleteRecord(${record.id})" title="Delete Record">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html;
+    }
+    
+    truncateText(text, maxLength) {
+        if (!text) return '';
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    }
+        
+        const rows = records.map(record => {
+            const marginClass = Utils.getMarginClass(record.gp_margin);
+            const formattedDate = Utils.formatDate(record.dated);
+            
+            return `
+                <tr>
+                    <td><strong>${record.invoice_num}</strong></td>
+                    <td>${formattedDate}</td>
+                    <td>${record.business_name}</td>
+                    <td>${record.sales_rep || '-'}</td>
+                    <td>${record.product}</td>
+                    <td>${record.quantity}</td>
+                    <td>${Utils.formatCurrency(record.unit_price)}</td>
+                    <td>${Utils.formatCurrency(record.line_revenue)}</td>
+                    <td>${Utils.formatCurrency(record.gross_profit)}</td>
+                    <td>
+                        <span class="badge badge-${marginClass}">
+                            ${Utils.formatPercentage(record.gp_margin)}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-info btn-sm" onclick="viewRecord(${record.id})" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${window.AppConfig.user.role === 'super_admin' || window.AppConfig.user.role === 'admin' ? `
+                                <button class="btn btn-warning btn-sm" onclick="editRecord(${record.id})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteRecord(${record.id})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        tbody.innerHTML = rows;
+    }
+    
+    updatePagination(pagination) {
+        const paginationContainer = document.getElementById('pagination');
+        
+        if (pagination.total_pages <= 1) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+        
+        let html = '<ul class="pagination pagination-sm mb-0">';
+        
+        // Previous button
+        if (pagination.current_page > 1) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changePage(${pagination.current_page - 1})">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+        }
+        
+        // Page numbers
+        const startPage = Math.max(1, pagination.current_page - 2);
+        const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            const activeClass = i === pagination.current_page ? 'active' : '';
+            html += `
+                <li class="page-item ${activeClass}">
+                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                </li>
+            `;
+        }
+        
+        // Next button
+        if (pagination.current_page < pagination.total_pages) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changePage(${pagination.current_page + 1})">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+        }
+        
+        html += '</ul>';
+        paginationContainer.innerHTML = html;
+    }
+    
+    updateTableInfo(pagination) {
+        const start = ((pagination.current_page - 1) * pagination.records_per_page) + 1;
+        const end = Math.min(pagination.current_page * pagination.records_per_page, pagination.total_records);
+        
+        document.getElementById('tableInfo').textContent = 
+            `Showing ${start} to ${end} of ${pagination.total_records} entries`;
+    }
+    
+    changePage(page) {
+        this.currentPage = page;
+        this.loadSalesData();
+    }
+    
+    handleSort(column) {
+        if (this.sortColumn === column) {
+            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortColumn = column;
+            this.sortDirection = 'asc';
+        }
+        
+        // Update sort icons
+        $('#salesTable th[data-sort] i').removeClass('fa-sort-up fa-sort-down').addClass('fa-sort');
+        const currentHeader = $(`#salesTable th[data-sort="${column}"] i`);
+        currentHeader.removeClass('fa-sort').addClass(this.sortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+        
+        this.loadSalesData();
+    }
+    
+    showAddModal() {
+        this.editingId = null;
+        document.getElementById('salesModalLabel').textContent = 'Add Sales Record';
+        document.getElementById('salesForm').reset();
+        document.getElementById('recordId').value = '';
+        
+        // Set default date to today
+        document.getElementById('dated').value = new Date().toISOString().split('T')[0];
+        
+        const modal = new bootstrap.Modal(document.getElementById('salesModal'));
+        modal.show();
+    }
+    
+    async editRecord(id) {
+        try {
+            Utils.showLoading('Loading record...');
+            
+            const response = await AjaxHelper.get(
+                window.AppConfig.baseUrl + '/ajax/sales.php',
+                { action: 'get', id: id }
+            );
+            
+            if (response.success) {
+                this.editingId = id;
+                this.populateForm(response.data);
+                
+                document.getElementById('salesModalLabel').textContent = 'Edit Sales Record';
+                const modal = new bootstrap.Modal(document.getElementById('salesModal'));
+                modal.show();
+            } else {
+                throw new Error(response.message || 'Failed to load record');
+            }
+            
+        } catch (error) {
+            console.error('Edit record error:', error);
+            Utils.showToast('Failed to load record: ' + error.message, 'error');
+        } finally {
+            Utils.hideLoading();
+        }
+    }
+    
+    populateForm(record) {
+        document.getElementById('recordId').value = record.id;
+        document.getElementById('invoiceNum').value = record.invoice_num;
+        document.getElementById('dated').value = record.dated;
+        document.getElementById('businessName').value = record.business_name;
+        document.getElementById('salesRep').value = record.sales_rep || '';
+        document.getElementById('product').value = record.product;
+        document.getElementById('quantity').value = record.quantity;
+        document.getElementById('unitPrice').value = record.unit_price;
+        document.getElementById('costPrice').value = record.cost_price || '';
+        document.getElementById('notes').value = record.notes || '';
+    }
+    
+    async saveRecord() {
+        try {
+            const formData = new FormData(document.getElementById('salesForm'));
+            const data = {};
+            
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            
+            data.action = this.editingId ? 'update' : 'create';
+            
+            Utils.showLoading('Saving record...');
+            
+            const response = await AjaxHelper.post(
+                window.AppConfig.baseUrl + '/ajax/sales.php',
+                data
+            );
+            
+            if (response.success) {
+                Utils.showToast(response.message, 'success');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('salesModal'));
+                modal.hide();
+                
+                this.loadSalesData(); // Refresh the table
+            } else {
+                throw new Error(response.message || 'Failed to save record');
+            }
+            
+        } catch (error) {
+            console.error('Save record error:', error);
+            Utils.showToast('Failed to save record: ' + error.message, 'error');
+        } finally {
+            Utils.hideLoading();
+        }
+    }
+    
+    async viewRecord(id) {
+        try {
+            Utils.showLoading('Loading record details...');
+            
+            const response = await AjaxHelper.get(
+                window.AppConfig.baseUrl + '/ajax/sales.php',
+                { action: 'get', id: id }
+            );
+            
+            if (response.success) {
+                this.showViewModal(response.data);
+            } else {
+                throw new Error(response.message || 'Failed to load record');
+            }
+            
+        } catch (error) {
+            console.error('View record error:', error);
+            Utils.showToast('Failed to load record: ' + error.message, 'error');
+        } finally {
+            Utils.hideLoading();
+        }
+    }
+    
+    showViewModal(record) {
+        const marginClass = Utils.getMarginClass(record.gp_margin);
+        const formattedDate = Utils.formatDate(record.dated);
+        
+        const content = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Invoice Number:</strong></label>
+                        <p class="form-control-plaintext">${record.invoice_num}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Date:</strong></label>
+                        <p class="form-control-plaintext">${formattedDate}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Business Name:</strong></label>
+                        <p class="form-control-plaintext">${record.business_name}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Sales Representative:</strong></label>
+                        <p class="form-control-plaintext">${record.sales_rep || '-'}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Product:</strong></label>
+                        <p class="form-control-plaintext">${record.product}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Quantity:</strong></label>
+                        <p class="form-control-plaintext">${record.quantity}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Unit Price:</strong></label>
+                        <p class="form-control-plaintext">${Utils.formatCurrency(record.unit_price)}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Line Revenue:</strong></label>
+                        <p class="form-control-plaintext">${Utils.formatCurrency(record.line_revenue)}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Gross Profit:</strong></label>
+                        <p class="form-control-plaintext">${Utils.formatCurrency(record.gross_profit)}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><strong>GP Margin:</strong></label>
+                        <p class="form-control-plaintext">
+                            <span class="badge badge-${marginClass}">
+                                ${Utils.formatPercentage(record.gp_margin)}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            ${record.notes ? `
+                <div class="row">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Notes:</strong></label>
+                            <p class="form-control-plaintext">${record.notes}</p>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+        `;
+        
+        document.getElementById('viewModalBody').innerHTML = content;
+        
+        const modal = new bootstrap.Modal(document.getElementById('viewModal'));
+        modal.show();
+    }
+    
+    deleteRecord(id) {
+        Utils.confirm('Are you sure you want to delete this sales record?', async () => {
+            try {
+                Utils.showLoading('Deleting record...');
+                
+                const response = await AjaxHelper.post(
+                    window.AppConfig.baseUrl + '/ajax/sales.php',
+                    { action: 'delete', id: id }
+                );
+                
+                if (response.success) {
+                    Utils.showToast(response.message, 'success');
+                    this.loadSalesData(); // Refresh the table
+                } else {
+                    throw new Error(response.message || 'Failed to delete record');
+                }
+                
+            } catch (error) {
+                console.error('Delete record error:', error);
+                Utils.showToast('Failed to delete record: ' + error.message, 'error');
+            } finally {
+                Utils.hideLoading();
+            }
+        });
+    }
+    
+    exportData(format) {
+        // This would typically generate a download link or trigger server-side export
+        Utils.showToast(`Export to ${format.toUpperCase()} functionality would be implemented here`, 'info');
+    }
+    
+    showErrorState() {
+        const tbody = document.querySelector('#salesTable tbody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="11" class="text-center text-danger py-4">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3 d-block"></i>
+                    Failed to load sales data
+                    <br>
+                    <button class="btn btn-primary btn-sm mt-2" onclick="window.salesController.loadSalesData()">
+                        <i class="fas fa-retry me-1"></i>Try Again
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Initialize when DOM is ready
+$(document).ready(function() {
+    console.log('Sales script loaded');
+});
