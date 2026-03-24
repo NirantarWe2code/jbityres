@@ -39,3 +39,6 @@ Thumbs.db
 *test*.php
 /config/config.php
 .history/
+/classes/SalesData.php
+/classes/SalesData.php.bak
+/cron/api_sync_sales.php
