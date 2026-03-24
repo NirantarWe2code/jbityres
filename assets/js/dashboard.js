@@ -134,16 +134,24 @@ class Dashboard {
         // Destroy existing chart
         if (this.charts.monthlySales) {
             this.charts.monthlySales.destroy();
+            this.charts.monthlySales = null;
         }
         
-        // Prepare data
-        const labels = monthlySales.map(item => {
-            const date = new Date(item.month + '-01');
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+        const data = Array.isArray(monthlySales) ? monthlySales : [];
+        const labels = data.map(item => {
+            const m = item.month || item.Month || '';
+            if (!m || m.length < 6) return 'N/A';
+            const date = new Date(m + '-01');
+            return isNaN(date.getTime()) ? m : date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
         });
+        const revenueData = data.map(item => parseFloat(item.revenue || item.total_amount || 0) || 0);
+        const salesData = data.map(item => parseInt(item.sales_count || 0) || 0);
         
-        const revenueData = monthlySales.map(item => parseFloat(item.revenue || 0));
-        const salesData = monthlySales.map(item => parseInt(item.sales_count || 0));
+        if (labels.length === 0) {
+            labels.push('No data');
+            revenueData.push(0);
+            salesData.push(0);
+        }
         
         // Create chart
         this.charts.monthlySales = new Chart(ctx, {

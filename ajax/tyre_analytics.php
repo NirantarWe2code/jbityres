@@ -1,12 +1,12 @@
 <?php
 /**
  * Tyre Analytics AJAX Handler
- * Data for Tyre Dashboard (TyreDashboard.jsx style + formulas.html calculations)
+ * Data for Tyre Dashboard - uses final_salesreportdata table
  */
 @ini_set('display_errors', '0'); // Prevent PHP notices/warnings from polluting JSON response
 ob_start(); // Capture any stray output (PHP notices, etc.)
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../classes/SalesData.php';
+require_once __DIR__ . '/../classes/FinalReportData.php';
 
 requirePermission('dashboard.view');
 
@@ -26,8 +26,8 @@ if (empty($filters['date_from']) && empty($filters['date_to'])) {
 }
 
 try {
-    $salesData = new SalesData();
-    $result = $salesData->getTyreAnalytics($filters);
+    $dataSource = new FinalReportData();
+    $result = $dataSource->getTyreAnalytics($filters);
 
     ob_end_clean(); // Discard any PHP notices/warnings (from getTyreAnalytics) before JSON
     header('Content-Type: application/json; charset=utf-8');

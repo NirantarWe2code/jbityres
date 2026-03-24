@@ -1,10 +1,11 @@
 <?php
 /**
  * Sales Data AJAX Handler
+ * Uses final_salesreportdata table (FinalReportData)
  */
 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../classes/SalesData.php';
+require_once __DIR__ . '/../classes/FinalReportData.php';
 
 // Ensure user is logged in and has permission
 requirePermission('sales.view');
@@ -17,35 +18,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-$salesData = new SalesData();
+$dataSource = new FinalReportData();
 
 try {
     switch ($action) {
         case 'list':
-            handleGetList($salesData);
+            handleGetList($dataSource);
             break;
             
         case 'get':
-            handleGetRecord($salesData);
+            handleGetRecord($dataSource);
             break;
             
         case 'create':
             requirePermission('sales.create');
-            handleCreateRecord($salesData);
+            handleCreateRecord($dataSource);
             break;
             
         case 'update':
             requirePermission('sales.edit');
-            handleUpdateRecord($salesData);
+            handleUpdateRecord($dataSource);
             break;
             
         case 'delete':
             requirePermission('sales.delete');
-            handleDeleteRecord($salesData);
+            handleDeleteRecord($dataSource);
             break;
             
         case 'filter_options':
-            handleGetFilterOptions($salesData);
+            handleGetFilterOptions($dataSource);
             break;
             
         default:
@@ -59,7 +60,7 @@ try {
 /**
  * Get sales records list with pagination and filtering
  */
-function handleGetList($salesData) {
+function handleGetList($dataSource) {
     $page = (int)($_GET['page'] ?? 1);
     $limit = (int)($_GET['limit'] ?? RECORDS_PER_PAGE);
     $limit = min($limit, MAX_RECORDS_PER_PAGE);
@@ -104,7 +105,7 @@ function handleGetList($salesData) {
         $filters['sort_direction'] = sanitize($_GET['sort_direction']);
     }
     
-    $result = $salesData->getAllRecords($page, $limit, $filters);
+    $result = $dataSource->getAllRecords($page, $limit, $filters);
     
     if ($result['success']) {
         jsonResponse(true, 'Sales records retrieved successfully', $result['data'], [
@@ -118,14 +119,14 @@ function handleGetList($salesData) {
 /**
  * Get single sales record
  */
-function handleGetRecord($salesData) {
+function handleGetRecord($dataSource) {
     $id = (int)($_GET['id'] ?? 0);
     
     if ($id <= 0) {
         jsonResponse(false, 'Invalid record ID');
     }
     
-    $result = $salesData->getRecordById($id);
+    $result = $dataSource->getRecordById($id);
     
     if ($result['success']) {
         jsonResponse(true, 'Sales record retrieved successfully', $result['data']);
@@ -137,20 +138,29 @@ function handleGetRecord($salesData) {
 /**
  * Create new sales record
  */
-function handleCreateRecord($salesData) {
+function handleCreateRecord($dataSource) {
     $data = [
-        'invoice_num' => sanitize($_POST['invoice_num'] ?? ''),
-        'dated' => $_POST['dated'] ?? '',
         'business_name' => sanitize($_POST['business_name'] ?? ''),
+        'delivery_name' => sanitize($_POST['delivery_name'] ?? ''),
+        'delivery_routes' => sanitize($_POST['delivery_routes'] ?? ''),
         'sales_rep' => sanitize($_POST['sales_rep'] ?? ''),
+        'account_type' => sanitize($_POST['account_type'] ?? ''),
+        'address' => sanitize($_POST['address'] ?? ''),
+        'invoice_num' => sanitize($_POST['invoice_num'] ?? ''),
+        'order_num' => sanitize($_POST['order_num'] ?? ''),
+        'dated' => $_POST['dated'] ?? '',
         'product' => sanitize($_POST['product'] ?? ''),
+        'stock_id' => sanitize($_POST['stock_id'] ?? ''),
         'quantity' => (float)($_POST['quantity'] ?? 0),
         'unit_price' => (float)($_POST['unit_price'] ?? 0),
-        'cost_price' => (float)($_POST['cost_price'] ?? 0),
-        'notes' => sanitize($_POST['notes'] ?? '')
+        'unit_gst' => (float)($_POST['unit_gst'] ?? 0),
+        'total_amount' => (float)($_POST['total_amount'] ?? 0),
+        'po_number' => sanitize($_POST['po_number'] ?? ''),
+        'purchase_price' => (float)($_POST['purchase_price'] ?? 0),
+        'reward_inclusive' => sanitize($_POST['reward_inclusive'] ?? 'No')
     ];
     
-    $result = $salesData->createRecord($data);
+    $result = $dataSource->createRecord($data);
     
     if ($result['success']) {
         jsonResponse(true, $result['message'], ['record_id' => $result['record_id']]);
@@ -162,7 +172,7 @@ function handleCreateRecord($salesData) {
 /**
  * Update sales record
  */
-function handleUpdateRecord($salesData) {
+function handleUpdateRecord($dataSource) {
     $id = (int)($_POST['id'] ?? 0);
     
     if ($id <= 0) {
@@ -170,18 +180,27 @@ function handleUpdateRecord($salesData) {
     }
     
     $data = [
-        'invoice_num' => sanitize($_POST['invoice_num'] ?? ''),
-        'dated' => $_POST['dated'] ?? '',
         'business_name' => sanitize($_POST['business_name'] ?? ''),
+        'delivery_name' => sanitize($_POST['delivery_name'] ?? ''),
+        'delivery_routes' => sanitize($_POST['delivery_routes'] ?? ''),
         'sales_rep' => sanitize($_POST['sales_rep'] ?? ''),
+        'account_type' => sanitize($_POST['account_type'] ?? ''),
+        'address' => sanitize($_POST['address'] ?? ''),
+        'invoice_num' => sanitize($_POST['invoice_num'] ?? ''),
+        'order_num' => sanitize($_POST['order_num'] ?? ''),
+        'dated' => $_POST['dated'] ?? '',
         'product' => sanitize($_POST['product'] ?? ''),
+        'stock_id' => sanitize($_POST['stock_id'] ?? ''),
         'quantity' => (float)($_POST['quantity'] ?? 0),
         'unit_price' => (float)($_POST['unit_price'] ?? 0),
-        'cost_price' => (float)($_POST['cost_price'] ?? 0),
-        'notes' => sanitize($_POST['notes'] ?? '')
+        'unit_gst' => (float)($_POST['unit_gst'] ?? 0),
+        'total_amount' => (float)($_POST['total_amount'] ?? 0),
+        'po_number' => sanitize($_POST['po_number'] ?? ''),
+        'purchase_price' => (float)($_POST['purchase_price'] ?? 0),
+        'reward_inclusive' => sanitize($_POST['reward_inclusive'] ?? 'No')
     ];
     
-    $result = $salesData->updateRecord($id, $data);
+    $result = $dataSource->updateRecord($id, $data);
     
     if ($result['success']) {
         jsonResponse(true, $result['message']);
@@ -193,14 +212,14 @@ function handleUpdateRecord($salesData) {
 /**
  * Delete sales record
  */
-function handleDeleteRecord($salesData) {
+function handleDeleteRecord($dataSource) {
     $id = (int)($_POST['id'] ?? 0);
     
     if ($id <= 0) {
         jsonResponse(false, 'Invalid record ID');
     }
     
-    $result = $salesData->deleteRecord($id);
+    $result = $dataSource->deleteRecord($id);
     
     if ($result['success']) {
         jsonResponse(true, $result['message']);
@@ -212,8 +231,8 @@ function handleDeleteRecord($salesData) {
 /**
  * Get filter options
  */
-function handleGetFilterOptions($salesData) {
-    $result = $salesData->getFilterOptions();
+function handleGetFilterOptions($dataSource) {
+    $result = $dataSource->getFilterOptions();
     
     if ($result['success']) {
         jsonResponse(true, 'Filter options retrieved successfully', $result['data']);

@@ -13,7 +13,7 @@ $breadcrumbs = [
 ];
 
 $pageScripts = [
-    BASE_URL . '/assets/js/sales.js'
+    BASE_URL . '/assets/js/sales.js?v=' . filemtime(__DIR__ . '/../../assets/js/sales.js')
 ];
 
 include __DIR__ . '/../../includes/header.php';
@@ -110,18 +110,18 @@ include __DIR__ . '/../../includes/header.php';
                                                                             <table id="salesTable" class="table table-striped table-hover table-sm">
                         <thead class="thead-dark">
                             <tr>
-                                <th style="width: 60px;">ID</th>
-                                <th style="width: 100px;">Invoice #</th>
-                                <th style="width: 100px;">Date</th>
-                                <th style="width: 150px;">Business</th>
-                                <th style="width: 100px;">Sales Rep</th>
-                                <th style="width: 200px;">Product</th>
-                                <th style="width: 80px;" class="text-right">Qty</th>
-                                <th style="width: 80px;" class="text-right">Unit Price</th>
-                                <th style="width: 90px;" class="text-right">Revenue</th>
-                                <th style="width: 80px;" class="text-right">Profit</th>
-                                <th style="width: 70px;" class="text-right">Margin</th>
-                                <th style="width: 120px;" class="text-center">Actions</th>
+                                <th style="width: 60px;">id</th>
+                                <th style="width: 100px;">invoice_num</th>
+                                <th style="width: 100px;">dated</th>
+                                <th style="width: 150px;">business_name</th>
+                                <th style="width: 100px;">sales_rep</th>
+                                <th style="width: 200px;">product</th>
+                                <th style="width: 80px;" class="text-right">quantity</th>
+                                <th style="width: 80px;" class="text-right">unit_price</th>
+                                <th style="width: 90px;" class="text-right">total_amount</th>
+                                <th style="width: 80px;" class="text-right">gross_profit</th>
+                                <th style="width: 70px;" class="text-right">gp_margin</th>
+                                <th style="width: 120px;" class="text-center">actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -152,78 +152,133 @@ include __DIR__ . '/../../includes/header.php';
 
 <!-- Add/Edit Modal -->
 <div class="modal fade" id="salesModal" tabindex="-1" aria-labelledby="salesModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="salesModalLabel">Add Sales Record</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="salesForm">
-                <div class="modal-body">
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                     <input type="hidden" id="recordId" name="id">
-                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="invoiceNum" class="form-label">Invoice Number *</label>
-                                <input type="text" class="form-control" id="invoiceNum" name="invoice_num" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="dated" class="form-label">Date *</label>
-                                <input type="date" class="form-control" id="dated" name="dated" required>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="businessName" class="form-label">Business Name *</label>
+                                <label for="businessName" class="form-label">Business_Name *</label>
                                 <input type="text" class="form-control" id="businessName" name="business_name" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="salesRep" class="form-label">Sales Representative</label>
+                                <label for="deliveryName" class="form-label">Delivery_Profile (delivery_name)</label>
+                                <input type="text" class="form-control" id="deliveryName" name="delivery_name">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="salesRep" class="form-label">Sales_Rep</label>
                                 <input type="text" class="form-control" id="salesRep" name="sales_rep">
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="accountType" class="form-label">AccountType</label>
+                                <input type="text" class="form-control" id="accountType" name="account_type">
+                            </div>
+                        </div>
                     </div>
-                    
                     <div class="mb-3">
-                        <label for="product" class="form-label">Product *</label>
-                        <input type="text" class="form-control" id="product" name="product" required>
+                        <label for="address" class="form-label">address</label>
+                        <textarea class="form-control" id="address" name="address" rows="2"></textarea>
                     </div>
-                    
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="quantity" class="form-label">Quantity *</label>
-                                <input type="number" class="form-control" id="quantity" name="quantity" 
-                                       min="0" step="0.01" required>
+                                <label for="invoiceNum" class="form-label">Invoice_Num *</label>
+                                <input type="text" class="form-control" id="invoiceNum" name="invoice_num" required>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="unitPrice" class="form-label">Unit Price *</label>
-                                <input type="number" class="form-control" id="unitPrice" name="unit_price" 
-                                       min="0" step="0.01" required>
+                                <label for="orderNum" class="form-label">Order_Num</label>
+                                <input type="text" class="form-control" id="orderNum" name="order_num">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="costPrice" class="form-label">Cost Price</label>
-                                <input type="number" class="form-control" id="costPrice" name="cost_price" 
-                                       min="0" step="0.01">
+                                <label for="dated" class="form-label">Dated *</label>
+                                <input type="date" class="form-control" id="dated" name="dated" required>
                             </div>
                         </div>
                     </div>
-                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="product" class="form-label">product *</label>
+                                <input type="text" class="form-control" id="product" name="product" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stockId" class="form-label">stock_id</label>
+                                <input type="text" class="form-control" id="stockId" name="stock_id">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity *</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="unitPrice" class="form-label">Unit_Price *</label>
+                                <input type="number" class="form-control" id="unitPrice" name="unit_price" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="unitGst" class="form-label">Unit_GST</label>
+                                <input type="number" class="form-control" id="unitGst" name="unit_gst" min="0" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="totalAmount" class="form-label">Total_Amount</label>
+                                <input type="number" class="form-control" id="totalAmount" name="total_amount" min="0" step="0.01" placeholder="Auto from Qty×Unit_Price">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="poNumber" class="form-label">PONumber</label>
+                                <input type="text" class="form-control" id="poNumber" name="po_number">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="purchasePrice" class="form-label">Purchase_Price</label>
+                                <input type="number" class="form-control" id="purchasePrice" name="purchase_price" min="0" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="rewardInclusive" class="form-label">Reward_inclusive</label>
+                                <select class="form-select" id="rewardInclusive" name="reward_inclusive">
+                                    <option value="No">No</option>
+                                    <option value="Yes">Yes</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div class="mb-3">
-                        <label for="notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        <label for="deliveryRoutes" class="form-label">delivery_routes</label>
+                        <input type="text" class="form-control" id="deliveryRoutes" name="delivery_routes">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -239,7 +294,7 @@ include __DIR__ . '/../../includes/header.php';
 
 <!-- View Modal -->
 <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewModalLabel">

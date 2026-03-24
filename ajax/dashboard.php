@@ -4,7 +4,7 @@
  */
 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../classes/SalesData.php';
+require_once __DIR__ . '/../classes/FinalReportData.php';
 
 // Ensure user is logged in and has permission
 requirePermission('dashboard.view');
@@ -17,16 +17,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-$salesData = new SalesData();
+$dataSource = new FinalReportData();
 
 try {
     switch ($action) {
         case 'stats':
-            handleGetStats($salesData);
+            handleGetStats($dataSource);
             break;
             
         case 'filter_options':
-            handleGetFilterOptions($salesData);
+            handleGetFilterOptions($dataSource);
             break;
             
         default:
@@ -38,9 +38,9 @@ try {
 }
 
 /**
- * Get dashboard statistics
+ * Get dashboard statistics from final_salesreportdata
  */
-function handleGetStats($salesData) {
+function handleGetStats($dataSource) {
     $filters = [];
     
     // Get date filters
@@ -58,7 +58,7 @@ function handleGetStats($salesData) {
         $filters['date_to'] = date('Y-m-d');
     }
     
-    $result = $salesData->getDashboardStats($filters);
+    $result = $dataSource->getDashboardStats($filters);
     
     if ($result['success']) {
         jsonResponse(true, 'Dashboard statistics retrieved successfully', $result['data']);
@@ -68,10 +68,10 @@ function handleGetStats($salesData) {
 }
 
 /**
- * Get filter options
+ * Get filter options from final_salesreportdata
  */
-function handleGetFilterOptions($salesData) {
-    $result = $salesData->getFilterOptions();
+function handleGetFilterOptions($dataSource) {
+    $result = $dataSource->getFilterOptions();
     
     if ($result['success']) {
         jsonResponse(true, 'Filter options retrieved successfully', $result['data']);

@@ -42,6 +42,14 @@ class SalesController {
             this.saveRecord();
         });
         
+        // Auto-calculate total_amount from quantity * unit_price
+        $('#quantity, #unitPrice').on('input', () => {
+            const q = parseFloat($('#quantity').val()) || 0;
+            const p = parseFloat($('#unitPrice').val()) || 0;
+            const total = document.getElementById('totalAmount');
+            if (total && (q > 0 || p > 0)) total.value = (q * p).toFixed(2);
+        });
+        
         // Search input with debounce
         $('#searchTerm').on('input', Utils.debounce(() => {
             this.applyFilters();
@@ -201,13 +209,13 @@ class SalesController {
                     <td class="text-right">${parseFloat(record.gp_margin || 0).toFixed(1)}%</td>
                     <td>
                         <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-info btn-sm" onclick="salesController.viewRecord(${record.id})" title="View Details">
+                            <button type="button" class="btn btn-info btn-sm" onclick="viewRecord(${record.id})" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button type="button" class="btn btn-warning btn-sm" onclick="salesController.editRecord(${record.id})" title="Edit Record">
+                            <button type="button" class="btn btn-warning btn-sm" onclick="editRecord(${record.id})" title="Edit Record">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="salesController.deleteRecord(${record.id})" title="Delete Record">
+                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteRecord(${record.id})" title="Delete Record">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -344,17 +352,26 @@ class SalesController {
     }
     
     populateForm(record) {
-        document.getElementById('recordId').value = record.id;
-        document.getElementById('invoiceNum').value = record.invoice_num;
-        // use date part only - no toISOString (avoids timezone off-by-one)
-        document.getElementById('dated').value = Utils.getDatePart(record.dated);
-        document.getElementById('businessName').value = record.business_name;
-        document.getElementById('salesRep').value = record.sales_rep || '';
-        document.getElementById('product').value = record.product;
-        document.getElementById('quantity').value = record.quantity;
-        document.getElementById('unitPrice').value = record.unit_price;
-        document.getElementById('costPrice').value = record.cost_price || '';
-        document.getElementById('notes').value = record.notes || '';
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+        setVal('recordId', record.id);
+        setVal('businessName', record.business_name);
+        setVal('deliveryName', record.delivery_name);
+        setVal('deliveryRoutes', record.delivery_routes);
+        setVal('salesRep', record.sales_rep);
+        setVal('accountType', record.account_type);
+        setVal('address', record.address);
+        setVal('invoiceNum', record.invoice_num);
+        setVal('orderNum', record.order_num);
+        setVal('dated', Utils.getDatePart(record.dated));
+        setVal('product', record.product);
+        setVal('stockId', record.stock_id);
+        setVal('quantity', record.quantity);
+        setVal('unitPrice', record.unit_price);
+        setVal('unitGst', record.unit_gst);
+        setVal('totalAmount', record.total_amount);
+        setVal('poNumber', record.po_number);
+        setVal('purchasePrice', record.purchase_price);
+        setVal('rewardInclusive', record.reward_inclusive || 'No');
     }
     
     async saveRecord() {
@@ -418,75 +435,39 @@ class SalesController {
     }
     
     showViewModal(record) {
-        const marginClass = Utils.getMarginClass(record.gp_margin);
+        const marginClass = Utils.getMarginClass(record.gp_margin || 0);
         const formattedDate = Utils.formatDate(record.dated);
+        const v = (k) => (record[k] ?? '').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
         
         const content = `
             <div class="row">
                 <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Invoice Number:</strong></label>
-                        <p class="form-control-plaintext">${record.invoice_num}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Date:</strong></label>
-                        <p class="form-control-plaintext">${formattedDate}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Business Name:</strong></label>
-                        <p class="form-control-plaintext">${record.business_name}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Sales Representative:</strong></label>
-                        <p class="form-control-plaintext">${record.sales_rep || '-'}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Product:</strong></label>
-                        <p class="form-control-plaintext">${record.product}</p>
-                    </div>
+                    <div class="mb-3"><label class="form-label"><strong>Business_Name:</strong></label><p class="form-control-plaintext">${v('business_name')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Delivery_Profile (delivery_name):</strong></label><p class="form-control-plaintext">${v('delivery_name')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>delivery_routes:</strong></label><p class="form-control-plaintext">${v('delivery_routes')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Sales_Rep:</strong></label><p class="form-control-plaintext">${v('sales_rep')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>AccountType:</strong></label><p class="form-control-plaintext">${v('account_type')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>address:</strong></label><p class="form-control-plaintext">${v('address')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Invoice_Num:</strong></label><p class="form-control-plaintext">${v('invoice_num')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Order_Num:</strong></label><p class="form-control-plaintext">${v('order_num')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Dated:</strong></label><p class="form-control-plaintext">${formattedDate}</p></div>
                 </div>
                 <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Quantity:</strong></label>
-                        <p class="form-control-plaintext">${record.quantity}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Unit Price:</strong></label>
-                        <p class="form-control-plaintext">${Utils.formatCurrency(record.unit_price)}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Line Revenue:</strong></label>
-                        <p class="form-control-plaintext">${Utils.formatCurrency(record.line_revenue)}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Gross Profit:</strong></label>
-                        <p class="form-control-plaintext">${Utils.formatCurrency(record.gross_profit)}</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>GP Margin:</strong></label>
-                        <p class="form-control-plaintext">
-                            <span class="badge badge-${marginClass}">
-                                ${Utils.formatPercentage(record.gp_margin)}
-                            </span>
-                        </p>
-                    </div>
+                    <div class="mb-3"><label class="form-label"><strong>product:</strong></label><p class="form-control-plaintext">${v('product')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>stock_id:</strong></label><p class="form-control-plaintext">${v('stock_id')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Quantity:</strong></label><p class="form-control-plaintext">${v('quantity')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Unit_Price:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.unit_price || 0)}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Unit_GST:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.unit_gst || 0)}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Total_Amount:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.total_amount || 0)}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>PONumber:</strong></label><p class="form-control-plaintext">${v('po_number')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Purchase_Price:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.purchase_price || 0)}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Reward_inclusive:</strong></label><p class="form-control-plaintext">${v('reward_inclusive')}</p></div>
+                    <div class="mb-3"><label class="form-label"><strong>Gross Profit / GP Margin:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.gross_profit || 0)} / <span class="badge badge-${marginClass}">${Utils.formatPercentage(record.gp_margin || 0)}</span></p></div>
                 </div>
             </div>
-            
-            ${record.notes ? `
-                <div class="row">
-                    <div class="col-12">
-                        <div class="mb-3">
-                            <label class="form-label"><strong>Notes:</strong></label>
-                            <p class="form-control-plaintext">${record.notes}</p>
-                        </div>
-                    </div>
-                </div>
-            ` : ''}
         `;
         
         document.getElementById('viewModalBody').innerHTML = content;
-        
         const modal = new bootstrap.Modal(document.getElementById('viewModal'));
         modal.show();
     }

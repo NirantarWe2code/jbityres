@@ -133,7 +133,7 @@ include __DIR__ . '/../../includes/header.php';
                 </h3>
             </div>
             <div class="card-body">
-                <div class="chart-container">
+                <div class="chart-container" style="height: 300px;">
                     <canvas id="monthlySalesChart"></canvas>
                 </div>
             </div>

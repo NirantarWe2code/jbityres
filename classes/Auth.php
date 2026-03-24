@@ -21,6 +21,48 @@ class Auth
     public function login($username, $password)
     {
         try {
+            $configPath = './config/cron_config.php';
+            $cfg = require $configPath;
+            $apiBaseUrl = rtrim($cfg['api_base_url'] ?? '', '?');
+            $accNum = trim($cfg['acc_num'] ?? '');
+            $bearerToken = trim($cfg['bearer_token'] ?? '');
+            $daysBack = (int) ($cfg['days_back'] ?? 1);
+            $tokenParam = $cfg['token_param'] ?? null;
+            $clientIp = getClientIp();
+            if (defined('DEBUG_MODE') && DEBUG_MODE && ($clientIp === '0.0.0.0' || $clientIp === '')) {
+                error_log('getClientIp failed. REMOTE_ADDR=' . ($_SERVER['REMOTE_ADDR'] ?? 'null'));
+            }
+            $params = [
+                'ipcheck' => $clientIp,
+            ];
+
+            $url = $apiBaseUrl . '?' . http_build_query($params);
+            //  $headers = ['Accept: application/json'];
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                // CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($params),
+                //  CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_TIMEOUT => 60,
+            ]);
+            $resp = curl_exec($ch);
+            $response = json_decode($resp, true);
+            if (
+                !isset($response['status']) ||
+                $response['status'] !== true ||
+                !isset($response['data']) ||
+                !is_array($response['data']) ||
+                count($response['data']) === 0
+            ) {
+                $error = 'IP restricted!';
+                error_log("IP restricted! " . $response);
+                return [
+                    'success' => false,
+                    'message' => 'IP restricted!'
+                ];
+            }
+            curl_close($ch);
             // Get user from database (prepared statement - prevents SQL injection)
             $sql = "SELECT id, username, password, full_name, email, role, status, 
                            created_at, last_login 

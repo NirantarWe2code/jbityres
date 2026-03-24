@@ -194,6 +194,36 @@ function jsonResponse($success, $message = '', $data = null, $meta = [])
 }
 
 /**
+ * Get client IP (proxy/Cloudflare/localhost - fetches public IP when on localhost)
+ */
+function getClientIp() {
+    $keys = ['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
+    $localFallback = '';
+    foreach ($keys as $key) {
+        if (!empty($_SERVER[$key])) {
+            $ip = trim((string)$_SERVER[$key]);
+            if (strpos($ip, ',') !== false) {
+                $ip = trim(explode(',', $ip)[0]);
+            }
+            if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+                if (!in_array($ip, ['127.0.0.1', '::1'], true)) {
+                    return $ip;
+                }
+                $localFallback = $ip;
+            }
+        }
+    }
+    if ($localFallback !== '' || empty($_SERVER['REMOTE_ADDR'])) {
+        $ctx = stream_context_create(['http' => ['timeout' => 3]]);
+        $public = @file_get_contents('https://api.ipify.org?format=text', false, $ctx);
+        if ($public && filter_var(trim($public), FILTER_VALIDATE_IP)) {
+            return trim($public);
+        }
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? $localFallback ?: '0.0.0.0';
+}
+
+/**
  * Sanitize input
  */
 function sanitize($input)

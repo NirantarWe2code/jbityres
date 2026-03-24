@@ -1,0 +1,44 @@
+================================================================================
+CRON SETUP - API Sales Data Sync
+================================================================================
+
+1. DATABASE TABLES
+   Run once: Import database/cron_sync_log.sql and database/cron_sync_skipped.sql
+   Or the script will auto-create on first run.
+
+2. CONFIGURATION
+   Copy config/cron_config.sample.php to config/cron_config.php
+   Then edit config/cron_config.php:
+   - api_base_url: Your API endpoint (e.g. https://abc.com/my-store/api/index.php)
+   - acc_num: Account number
+   - bearer_token: API Bearer token
+   - days_back: How many days to fetch (1 = yesterday only)
+
+3. CRONTAB (run daily at 1 AM)
+   crontab -e
+   Add line:
+   0 1 * * * /usr/bin/php /path/to/your/finalReport/cron/api_sync_sales.php
+
+   Example (XAMPP):
+   0 1 * * * C:\xampp\php\php.exe C:\xampp\htdocs\finalReport\cron\api_sync_sales.php
+
+   Linux server:
+   0 1 * * * /usr/bin/php /home/reports/public_html/jbityres/cron/api_sync_sales.php
+
+4. DATE RANGE (from cron_sync_log)
+   Cron uses date_from, date_to from the last row in cron_sync_log. If no row or empty, uses yesterday.
+   To override: UPDATE cron_sync_log SET date_from='2026-03-15 00:00:00', date_to='2026-03-18 23:59:59' ORDER BY id DESC LIMIT 1;
+
+5. LOG TABLE (cron_sync_log)
+   Tracks each run: sync_started_at, date_from, date_to, records_fetched, records_inserted, records_skipped, status, message
+
+6. FINAL REPORT (api_sync_final_report.php)
+   Copies API data to final_salesreportdata table (only API columns).
+   Run: php cron/api_sync_final_report.php
+
+7. SKIPPED TABLE (cron_sync_skipped)
+   Stores each skipped record with reason. Run: Import database/cron_sync_skipped.sql (or auto-created)
+   Query: SELECT * FROM cron_sync_skipped WHERE cron_sync_log_id = ?
+   Reasons: duplicate, missing_invoice, missing_business, missing_product, no_matching_columns, insert_failed
+
+================================================================================
