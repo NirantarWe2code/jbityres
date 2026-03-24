@@ -135,6 +135,7 @@ $pageTitle = $pageTitle ?? 'Dashboard';
                         <?php echo htmlspecialchars($currentUser['full_name'] ?? $currentUser['username']); ?>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="<?php echo BASE_URL; ?>/setup_2fa.php"><i class="fas fa-shield-alt me-2"></i>Two-Factor Auth</a></li>
                         <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
                         <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
                         <li><hr class="dropdown-divider"></li>

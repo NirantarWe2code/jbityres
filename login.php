@@ -1,9 +1,14 @@
 <?php
 /**
- * Login Page
+ * Login Page - Supports OTP/2FA with Authenticator app
  */
 
 require_once __DIR__ . '/config/config.php';
+
+// Start session if not started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -13,9 +18,52 @@ if (isLoggedIn()) {
 
 $error = '';
 $success = '';
+$step = $_GET['step'] ?? $_POST['step'] ?? 'credentials';
+$showOtpStep = false;
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// OTP step: verify code and complete login
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['step'] ?? '') === 'otp') {
+    $showOtpStep = true;
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid security token. Please try again.';
+    } elseif (empty($_SESSION['pending_2fa_user_id'])) {
+        $error = 'Session expired. Please login again.';
+        unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_time']);
+        $showOtpStep = false;
+    } elseif (isset($_SESSION['pending_2fa_time']) && (time() - $_SESSION['pending_2fa_time']) > 300) {
+        $error = 'OTP session expired. Please login again.';
+        unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_time']);
+        $showOtpStep = false;
+    } else {
+        $otpCode = trim($_POST['otp_code'] ?? '');
+        if (empty($otpCode)) {
+            $error = 'Please enter the 6-digit code from your authenticator app.';
+        } else {
+            require_once __DIR__ . '/classes/Auth.php';
+            $auth = new Auth();
+            $result = $auth->verifyOtpAndLogin($_SESSION['pending_2fa_user_id'], $otpCode);
+            if ($result['success']) {
+                unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_time']);
+                header('Location: ' . BASE_URL . '/pages/dashboard/index.php');
+                exit;
+            }
+            $error = $result['message'];
+        }
+    }
+}
+
+// Clear pending 2FA if user navigates back
+if (!empty($_GET['clear'])) {
+    unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_time']);
+}
+
+// Check if we should show OTP step (from credentials step redirect)
+if ($step === 'otp' && !empty($_SESSION['pending_2fa_user_id'])) {
+    $showOtpStep = true;
+}
+
+// Credentials step: username + password
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['step'] ?? '') !== 'otp') {
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid security token. Please try again.';
     } else {
@@ -33,17 +81,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($result['success']) {
                     header('Location: ' . BASE_URL . '/pages/dashboard/index.php');
                     exit;
+                } elseif (!empty($result['need_otp']) && !empty($result['pending_user_id'])) {
+                    $_SESSION['pending_2fa_user_id'] = $result['pending_user_id'];
+                    $_SESSION['pending_2fa_time'] = time();
+                    $showOtpStep = true;
+                    $success = 'Enter the 6-digit code from your authenticator app.';
                 } else {
                     $error = $result['message'];
-
-                    // Log failed login attempt for debugging
                     error_log("Login failed for user '$username': " . $result['message']);
                 }
             } catch (Exception $e) {
                 $error = 'System error occurred. Please try again.';
                 error_log("Login system error: " . $e->getMessage());
-
-                // In development, show actual error
                 if (defined('DEBUG_MODE') && DEBUG_MODE) {
                     $error = 'System error: ' . $e->getMessage();
                 }
@@ -192,6 +241,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
+            <?php if ($showOtpStep): ?>
+            <!-- OTP Verification Step (2FA) -->
+            <form method="POST" id="otpForm">
+                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                <input type="hidden" name="step" value="otp">
+
+                <div class="mb-3 text-center">
+                    <p class="text-muted">
+                        <i class="fas fa-mobile-alt fa-2x mb-2"></i><br>
+                        Open your authenticator app (Google Authenticator, Authy, etc.) and enter the 6-digit code
+                    </p>
+                </div>
+
+                <div class="form-floating">
+                    <input type="text" class="form-control text-center" id="otpCode" name="otp_code" 
+                        placeholder="000000" maxlength="8" pattern="[0-9\s]*" 
+                        inputmode="numeric" autocomplete="one-time-code" required autofocus>
+                    <label for="otpCode"><i class="fas fa-key me-2"></i>Enter 6-digit code</label>
+                </div>
+
+                <button type="submit" class="btn btn-login">
+                    <span class="btn-text"><i class="fas fa-check me-2"></i>Verify</span>
+                    <span class="loading"><i class="fas fa-spinner fa-spin me-2"></i>Verifying...</span>
+                </button>
+
+                <div class="text-center mt-3">
+                    <a href="<?php echo BASE_URL; ?>/login.php?clear=1" class="text-muted small">
+                        <i class="fas fa-arrow-left me-1"></i>Back to login
+                    </a>
+                </div>
+            </form>
+            <?php else: ?>
+            <!-- Credentials Step -->
             <form method="POST" id="loginForm">
                 <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
 
@@ -216,6 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </span>
                 </button>
             </form>
+            <?php endif; ?>
 
             <div class="demo-credentials">
                 <h6><i class="fas fa-info-circle me-2"></i>Demo Credentials:</h6>
@@ -239,15 +322,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function () {
-            const btnText = document.querySelector('.btn-text');
-            const loading = document.querySelector('.loading');
-            const submitBtn = document.querySelector('.btn-login');
-
-            btnText.style.display = 'none';
-            loading.classList.add('show');
-            submitBtn.disabled = true;
-        });
+        (function() {
+            const form = document.getElementById('loginForm') || document.getElementById('otpForm');
+            if (form) {
+                form.addEventListener('submit', function () {
+                    const btnText = form.querySelector('.btn-text');
+                    const loading = form.querySelector('.loading');
+                    const submitBtn = form.querySelector('.btn-login');
+                    if (btnText) btnText.style.display = 'none';
+                    if (loading) loading.classList.add('show');
+                    if (submitBtn) submitBtn.disabled = true;
+                });
+            }
+            // Auto-focus OTP input and allow only digits
+            const otpInput = document.getElementById('otpCode');
+            if (otpInput) {
+                otpInput.addEventListener('input', function() {
+                    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+                });
+            }
+        })();
 
         // Auto-fill demo credentials
         document.addEventListener('DOMContentLoaded', function () {

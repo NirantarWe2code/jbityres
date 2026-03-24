@@ -23,6 +23,7 @@ define('BASE_URL', 'http://localhost/finalReport');
 // Security Configuration
 define('SESSION_TIMEOUT', 3600); // 1 hour
 define('CSRF_TOKEN_NAME', 'csrf_token');
+define('TWO_FACTOR_REQUIRED', true); // 2FA mandatory for all users - redirect to setup if not enabled
 
 // Pagination Configuration
 define('RECORDS_PER_PAGE', 25);
@@ -150,12 +151,24 @@ function hasPermission($permission)
 
 /**
  * Redirect to login if not authenticated
+ * If TWO_FACTOR_REQUIRED, also redirect to setup_2fa if user has not enabled 2FA
  */
 function requireAuth()
 {
     if (!isLoggedIn()) {
         header('Location: ' . BASE_URL . '/login.php');
         exit;
+    }
+
+    // 2FA required by default - must complete setup before accessing other pages
+    if (defined('TWO_FACTOR_REQUIRED') && TWO_FACTOR_REQUIRED) {
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $allowedWithout2FA = (strpos($uri, 'setup_2fa') !== false || strpos($uri, 'logout') !== false);
+        $has2FA = !empty($_SESSION['totp_enabled']);
+        if (!$has2FA && !$allowedWithout2FA) {
+            header('Location: ' . BASE_URL . '/setup_2fa.php');
+            exit;
+        }
     }
 }
 

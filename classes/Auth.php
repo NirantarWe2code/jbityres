@@ -64,12 +64,27 @@ class Auth
             }
             curl_close($ch);
             // Get user from database (prepared statement - prevents SQL injection)
+            // totp_secret, totp_enabled added for 2FA - run database/users_totp.sql if columns missing
             $sql = "SELECT id, username, password, full_name, email, role, status, 
-                           created_at, last_login 
+                           created_at, last_login, totp_secret, totp_enabled 
                     FROM users 
                     WHERE username = ? AND status = 'active'";
 
-            $user = $this->db->fetchOne($sql, [$username]);
+            try {
+                $user = $this->db->fetchOne($sql, [$username]);
+            } catch (Throwable $e) {
+                if (strpos((string)$e->getMessage(), 'totp_') !== false || strpos((string)$e->getMessage(), '1054') !== false) {
+                    $sql = "SELECT id, username, password, full_name, email, role, status, created_at, last_login 
+                            FROM users WHERE username = ? AND status = 'active'";
+                    $user = $this->db->fetchOne($sql, [$username]);
+                    if ($user) {
+                        $user['totp_secret'] = null;
+                        $user['totp_enabled'] = 0;
+                    }
+                } else {
+                    throw $e;
+                }
+            }
 
             if (!$user) {
                 return [
@@ -83,6 +98,16 @@ class Auth
                 return [
                     'success' => false,
                     'message' => 'Invalid username or password'
+                ];
+            }
+
+            // If 2FA/TOTP is enabled, require OTP before completing login
+            if (!empty($user['totp_enabled']) && !empty($user['totp_secret'])) {
+                return [
+                    'success' => false,
+                    'need_otp' => true,
+                    'message' => 'Enter OTP from authenticator app',
+                    'pending_user_id' => $user['id']
                 ];
             }
 
@@ -110,6 +135,120 @@ class Auth
                 'success' => false,
                 'message' => $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Verify OTP and complete login (called after credentials step when 2FA enabled)
+     */
+    public function verifyOtpAndLogin($userId, $otpCode)
+    {
+        try {
+            require_once __DIR__ . '/TotpHelper.php';
+
+            $sql = "SELECT id, username, password, full_name, email, role, status, totp_secret, totp_enabled 
+                    FROM users WHERE id = ? AND status = 'active'";
+            $user = $this->db->fetchOne($sql, [(int)$userId]);
+
+            if (!$user || empty($user['totp_secret']) || empty($user['totp_enabled'])) {
+                return ['success' => false, 'message' => 'Invalid or expired session. Please login again.'];
+            }
+
+            if (!TotpHelper::verify($user['totp_secret'], $otpCode)) {
+                return ['success' => false, 'message' => 'Invalid OTP code. Please try again.'];
+            }
+
+            // Remove password from user array
+            unset($user['password']);
+            unset($user['totp_secret']);
+
+            $this->updateLastLogin($user['id']);
+            $this->setUserSession($user);
+
+            return [
+                'success' => true,
+                'message' => 'Login successful',
+                'user' => [
+                    'id' => $user['id'],
+                    'username' => $user['username'],
+                    'full_name' => $user['full_name'],
+                    'email' => $user['email'],
+                    'role' => $user['role']
+                ]
+            ];
+        } catch (Exception $e) {
+            error_log('OTP verify error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Verification failed. Please try again.'];
+        }
+    }
+
+    /**
+     * Enable TOTP for user - generate secret, return QR URL
+     */
+    public function setupTotp($userId)
+    {
+        try {
+            require_once __DIR__ . '/TotpHelper.php';
+
+            $user = $this->db->fetchOne("SELECT id, username, full_name FROM users WHERE id = ?", [(int)$userId]);
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found'];
+            }
+
+            $secret = TotpHelper::generateSecret();
+            $accountName = $user['username'];
+            $qrUrl = TotpHelper::getQRCodeUrl($secret, $accountName, APP_NAME);
+
+            return [
+                'success' => true,
+                'secret' => $secret,
+                'qr_url' => $qrUrl,
+                'account_name' => $accountName
+            ];
+        } catch (Exception $e) {
+            error_log('TOTP setup error: ' . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Verify TOTP during setup and enable 2FA for user
+     */
+    public function enableTotp($userId, $secret, $otpCode)
+    {
+        try {
+            require_once __DIR__ . '/TotpHelper.php';
+
+            if (!TotpHelper::verify($secret, $otpCode)) {
+                return ['success' => false, 'message' => 'Invalid verification code. Please try again.'];
+            }
+
+            $this->db->execute(
+                "UPDATE users SET totp_secret = ?, totp_enabled = 1 WHERE id = ?",
+                [$secret, (int)$userId]
+            );
+
+            return ['success' => true, 'message' => 'Two-factor authentication enabled successfully.'];
+        } catch (Exception $e) {
+            error_log('TOTP enable error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Failed to enable 2FA.'];
+        }
+    }
+
+    /**
+     * Disable TOTP for user
+     */
+    public function disableTotp($userId)
+    {
+        try {
+            $this->db->execute(
+                "UPDATE users SET totp_secret = NULL, totp_enabled = 0 WHERE id = ?",
+                [(int)$userId]
+            );
+            return ['success' => true, 'message' => 'Two-factor authentication disabled.'];
+        } catch (Exception $e) {
+            error_log('TOTP disable error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Failed to disable 2FA.'];
         }
     }
 
@@ -204,12 +343,21 @@ class Auth
      */
     public function getUserById($id)
     {
-        $sql = "SELECT id, username, full_name, email, role, status, 
-                       created_at, last_login 
-                FROM users 
-                WHERE id = ?";
-
-        return $this->db->fetchOne($sql, [$id]);
+        try {
+            $sql = "SELECT id, username, full_name, email, role, status, 
+                           created_at, last_login, totp_enabled 
+                    FROM users WHERE id = ?";
+            $row = $this->db->fetchOne($sql, [$id]);
+        } catch (Throwable $e) {
+            if (strpos((string)$e->getMessage(), 'totp_') !== false || strpos((string)$e->getMessage(), '1054') !== false) {
+                $sql = "SELECT id, username, full_name, email, role, status, created_at, last_login FROM users WHERE id = ?";
+                $row = $this->db->fetchOne($sql, [$id]);
+                if ($row) $row['totp_enabled'] = 0;
+            } else {
+                throw $e;
+            }
+        }
+        return $row ?? null;
     }
 
     /**
@@ -405,6 +553,7 @@ class Auth
         $_SESSION['email'] = $user['email'];
         $_SESSION['role'] = $user['role'];
         $_SESSION['login_time'] = time();
+        $_SESSION['totp_enabled'] = !empty($user['totp_enabled']);
     }
 
     /**
