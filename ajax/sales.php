@@ -5,7 +5,7 @@
  */
 
 require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../classes/FinalReportData.php';
+require_once __DIR__ . '/../classes/SalesData.php';
 
 // Ensure user is logged in and has permission
 requirePermission('sales.view');
@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
-$dataSource = new FinalReportData();
+$dataSource = new SalesData();
 
 try {
     switch ($action) {
@@ -140,30 +140,21 @@ function handleGetRecord($dataSource) {
  */
 function handleCreateRecord($dataSource) {
     $data = [
-        'business_name' => sanitize($_POST['business_name'] ?? ''),
-        'delivery_name' => sanitize($_POST['delivery_name'] ?? ''),
-        'delivery_routes' => sanitize($_POST['delivery_routes'] ?? ''),
-        'sales_rep' => sanitize($_POST['sales_rep'] ?? ''),
-        'account_type' => sanitize($_POST['account_type'] ?? ''),
-        'address' => sanitize($_POST['address'] ?? ''),
-        'invoice_num' => sanitize($_POST['invoice_num'] ?? ''),
-        'order_num' => sanitize($_POST['order_num'] ?? ''),
-        'dated' => $_POST['dated'] ?? '',
+        'Dated' => $_POST['dated'] ?? '',
+        'Business_Name' => sanitize($_POST['business_name'] ?? ''),
+        'Sales_Rep' => sanitize($_POST['sales_rep'] ?? ''),
+        'Invoice_Num' => sanitize($_POST['invoice_num'] ?? ''),
         'product' => sanitize($_POST['product'] ?? ''),
-        'stock_id' => sanitize($_POST['stock_id'] ?? ''),
-        'quantity' => (float)($_POST['quantity'] ?? 0),
-        'unit_price' => (float)($_POST['unit_price'] ?? 0),
-        'unit_gst' => (float)($_POST['unit_gst'] ?? 0),
-        'total_amount' => (float)($_POST['total_amount'] ?? 0),
-        'po_number' => sanitize($_POST['po_number'] ?? ''),
-        'purchase_price' => (float)($_POST['purchase_price'] ?? 0),
-        'reward_inclusive' => sanitize($_POST['reward_inclusive'] ?? 'No')
+        'Delivery_Profile' => sanitize($_POST['delivery_profile'] ?? ''),
+        'Quantity' => (float)($_POST['quantity'] ?? 0),
+        'Unit_Price' => (float)($_POST['unit_price'] ?? 0),
+        'Purchase_Price' => (float)($_POST['purchase_price'] ?? 0)
     ];
     
     $result = $dataSource->createRecord($data);
     
     if ($result['success']) {
-        jsonResponse(true, $result['message'], ['record_id' => $result['record_id']]);
+        jsonResponse(true, $result['message'], ['record_id' => $result['id']]);
     } else {
         jsonResponse(false, $result['message']);
     }
@@ -180,24 +171,15 @@ function handleUpdateRecord($dataSource) {
     }
     
     $data = [
-        'business_name' => sanitize($_POST['business_name'] ?? ''),
-        'delivery_name' => sanitize($_POST['delivery_name'] ?? ''),
-        'delivery_routes' => sanitize($_POST['delivery_routes'] ?? ''),
-        'sales_rep' => sanitize($_POST['sales_rep'] ?? ''),
-        'account_type' => sanitize($_POST['account_type'] ?? ''),
-        'address' => sanitize($_POST['address'] ?? ''),
-        'invoice_num' => sanitize($_POST['invoice_num'] ?? ''),
-        'order_num' => sanitize($_POST['order_num'] ?? ''),
-        'dated' => $_POST['dated'] ?? '',
+        'Dated' => $_POST['dated'] ?? '',
+        'Business_Name' => sanitize($_POST['business_name'] ?? ''),
+        'Sales_Rep' => sanitize($_POST['sales_rep'] ?? ''),
+        'Invoice_Num' => sanitize($_POST['invoice_num'] ?? ''),
         'product' => sanitize($_POST['product'] ?? ''),
-        'stock_id' => sanitize($_POST['stock_id'] ?? ''),
-        'quantity' => (float)($_POST['quantity'] ?? 0),
-        'unit_price' => (float)($_POST['unit_price'] ?? 0),
-        'unit_gst' => (float)($_POST['unit_gst'] ?? 0),
-        'total_amount' => (float)($_POST['total_amount'] ?? 0),
-        'po_number' => sanitize($_POST['po_number'] ?? ''),
-        'purchase_price' => (float)($_POST['purchase_price'] ?? 0),
-        'reward_inclusive' => sanitize($_POST['reward_inclusive'] ?? 'No')
+        'Delivery_Profile' => sanitize($_POST['delivery_profile'] ?? ''),
+        'Quantity' => (float)($_POST['quantity'] ?? 0),
+        'Unit_Price' => (float)($_POST['unit_price'] ?? 0),
+        'Purchase_Price' => (float)($_POST['purchase_price'] ?? 0)
     ];
     
     $result = $dataSource->updateRecord($id, $data);

@@ -1,8 +1,13 @@
 <?php
 /**
  * Database Connection and Operations Class
- * Simple MySQLi-based database handler
+ * Simple MySQLi-based database handler with environment variable support
  */
+
+require_once __DIR__ . '/../config/env.php';
+
+// Load environment variables
+loadEnv();
 
 class Database {
     private $connection;
@@ -11,11 +16,11 @@ class Database {
     private $lastParams = [];
     private $queryLog = [];
     private $logQueries = true;
-    
+
     private function __construct() {
         $this->connect();
     }
-    
+
     /**
      * Get singleton instance
      */
@@ -25,20 +30,25 @@ class Database {
         }
         return self::$instance;
     }
-    
+
     /**
-     * Connect to database
+     * Connect to database using environment variables
      */
     private function connect() {
         try {
-            $this->connection = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-            
+            $host = env('DB_HOST', 'localhost');
+            $user = env('DB_USER', 'root');
+            $pass = env('DB_PASS', '');
+            $name = env('DB_NAME', 'sales');
+
+            $this->connection = new mysqli($host, $user, $pass, $name);
+
             if ($this->connection->connect_error) {
                 throw new Exception('Connection failed: ' . $this->connection->connect_error);
             }
-            
+
             $this->connection->set_charset('utf8mb4');
-            
+
         } catch (Exception $e) {
             error_log('Database connection error: ' . $e->getMessage());
             throw new Exception('Database connection failed');

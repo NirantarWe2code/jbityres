@@ -4,50 +4,55 @@
  * Simple AJAX-based system without API
  */
 
+require_once __DIR__ . '/env.php';
+
+// Load environment variables
+loadEnv();
+
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Database Configuration
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'sales');
+// Database Configuration (now loaded from environment)
+define('DB_HOST', env('DB_HOST', 'localhost'));
+define('DB_USER', env('DB_USER', 'root'));
+define('DB_PASS', env('DB_PASS', ''));
+define('DB_NAME', env('DB_NAME', 'sales'));
 
 // Application Configuration
-define('APP_NAME', 'Final Report System');
-define('APP_VERSION', '1.0.0');
-define('BASE_URL', 'http://localhost/finalReport');
+define('APP_NAME', env('APP_NAME', 'Final Report System'));
+define('APP_VERSION', env('APP_VERSION', '1.0.0'));
+define('BASE_URL', env('BASE_URL', 'http://localhost/finalReport'));
 
 // Security Configuration
-define('SESSION_TIMEOUT', 3600); // 1 hour
-define('CSRF_TOKEN_NAME', 'csrf_token');
-define('TWO_FACTOR_REQUIRED', true); // 2FA mandatory for all users - redirect to setup if not enabled
+define('SESSION_TIMEOUT', (int) env('SESSION_TIMEOUT', 3600));
+define('CSRF_TOKEN_NAME', env('CSRF_TOKEN_NAME', 'csrf_token'));
+define('TWO_FACTOR_REQUIRED', env('TWO_FACTOR_REQUIRED', 'true') === 'true');
 
 // Pagination Configuration
-define('RECORDS_PER_PAGE', 25);
-define('MAX_RECORDS_PER_PAGE', 100);
+define('RECORDS_PER_PAGE', (int) env('RECORDS_PER_PAGE', 25));
+define('MAX_RECORDS_PER_PAGE', (int) env('MAX_RECORDS_PER_PAGE', 100));
 
 // User Roles
-define('ROLE_SUPER_ADMIN', 'super_admin');
-define('ROLE_ADMIN', 'admin');
-define('ROLE_USER', 'user');
+define('ROLE_SUPER_ADMIN', env('ROLE_SUPER_ADMIN', 'super_admin'));
+define('ROLE_ADMIN', env('ROLE_ADMIN', 'admin'));
+define('ROLE_USER', env('ROLE_USER', 'user'));
 
-// Dashboard Colors (same as original system)
+// Dashboard Colors (now loaded from environment)
 define('DASHBOARD_COLORS', [
-    'bg' => '#1a1a1a',
-    'surface' => '#2d2d2d',
-    'card' => '#363636',
-    'border' => '#404040',
-    'teal' => '#14b8a6',
-    'teal_dim' => 'rgba(20, 184, 166, 0.1)',
-    'gold' => '#f59e0b',
-    'rose' => '#f43f5e',
-    'blue' => '#3b82f6',
-    'purple' => '#8b5cf6',
-    'green' => '#10b981',
-    'text' => '#f8fafc',
+    'bg' => env('DASHBOARD_BG', '#1a1a1a'),
+    'surface' => env('DASHBOARD_SURFACE', '#2d2d2d'),
+    'card' => env('DASHBOARD_CARD', '#363636'),
+    'border' => env('DASHBOARD_BORDER', '#404040'),
+    'teal' => env('DASHBOARD_TEAL', '#14b8a6'),
+    'teal_dim' => env('DASHBOARD_TEAL_DIM', 'rgba(20, 184, 166, 0.1)'),
+    'gold' => env('DASHBOARD_GOLD', '#f59e0b'),
+    'rose' => env('DASHBOARD_ROSE', '#f43f5e'),
+    'blue' => env('DASHBOARD_BLUE', '#3b82f6'),
+    'purple' => env('DASHBOARD_PURPLE', '#8b5cf6'),
+    'green' => env('DASHBOARD_GREEN', '#10b981'),
+    'text' => env('DASHBOARD_TEXT', '#f8fafc'),
     'muted' => '#94a3b8',
     'dim' => '#64748b'
 ]);

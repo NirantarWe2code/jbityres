@@ -116,9 +116,10 @@ include __DIR__ . '/../../includes/header.php';
                                 <th style="width: 150px;">business_name</th>
                                 <th style="width: 100px;">sales_rep</th>
                                 <th style="width: 200px;">product</th>
+                                <th style="width: 120px;">delivery_profile</th>
                                 <th style="width: 80px;" class="text-right">quantity</th>
                                 <th style="width: 80px;" class="text-right">unit_price</th>
-                                <th style="width: 90px;" class="text-right">total_amount</th>
+                                <th style="width: 80px;" class="text-right">purchase_price</th>
                                 <th style="width: 80px;" class="text-right">gross_profit</th>
                                 <th style="width: 70px;" class="text-right">gp_margin</th>
                                 <th style="width: 120px;" class="text-center">actions</th>
@@ -126,7 +127,7 @@ include __DIR__ . '/../../includes/header.php';
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="12" class="text-center">
+                                <td colspan="13" class="text-center">
                                     <div class="spinner-border spinner-border-sm" role="status">
                                         <span class="sr-only">Loading...</span>
                                     </div>
@@ -170,43 +171,19 @@ include __DIR__ . '/../../includes/header.php';
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="deliveryName" class="form-label">Delivery_Profile (delivery_name)</label>
-                                <input type="text" class="form-control" id="deliveryName" name="delivery_name">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
                                 <label for="salesRep" class="form-label">Sales_Rep</label>
                                 <input type="text" class="form-control" id="salesRep" name="sales_rep">
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="accountType" class="form-label">AccountType</label>
-                                <input type="text" class="form-control" id="accountType" name="account_type">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="address" class="form-label">address</label>
-                        <textarea class="form-control" id="address" name="address" rows="2"></textarea>
                     </div>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="invoiceNum" class="form-label">Invoice_Num *</label>
                                 <input type="text" class="form-control" id="invoiceNum" name="invoice_num" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="orderNum" class="form-label">Order_Num</label>
-                                <input type="text" class="form-control" id="orderNum" name="order_num">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="dated" class="form-label">Dated *</label>
                                 <input type="date" class="form-control" id="dated" name="dated" required>
@@ -216,37 +193,37 @@ include __DIR__ . '/../../includes/header.php';
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="product" class="form-label">product *</label>
+                                <label for="product" class="form-label">Product *</label>
                                 <input type="text" class="form-control" id="product" name="product" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="stockId" class="form-label">stock_id</label>
-                                <input type="text" class="form-control" id="stockId" name="stock_id">
+                                <label for="deliveryProfile" class="form-label">Delivery_Profile</label>
+                                <input type="text" class="form-control" id="deliveryProfile" name="delivery_profile">
                             </div>
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="quantity" class="form-label">Quantity *</label>
                                 <input type="number" class="form-control" id="quantity" name="quantity" min="0" step="0.01" required>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="unitPrice" class="form-label">Unit_Price *</label>
                                 <input type="number" class="form-control" id="unitPrice" name="unit_price" min="0" step="0.01" required>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="unitGst" class="form-label">Unit_GST</label>
-                                <input type="number" class="form-control" id="unitGst" name="unit_gst" min="0" step="0.01">
+                                <label for="purchasePrice" class="form-label">Purchase_Price</label>
+                                <input type="number" class="form-control" id="purchasePrice" name="purchase_price" min="0" step="0.01">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                    </div>
                             <div class="mb-3">
                                 <label for="totalAmount" class="form-label">Total_Amount</label>
                                 <input type="number" class="form-control" id="totalAmount" name="total_amount" min="0" step="0.01" placeholder="Auto from Qty×Unit_Price">

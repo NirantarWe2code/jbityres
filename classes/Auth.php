@@ -48,18 +48,21 @@ class Auth
             ]);
             $resp = curl_exec($ch);
             $response = json_decode($resp, true);
+            //echo "API Response: <pre>";
+            //print_r($response);
             if (
                 !isset($response['status']) ||
-                $response['status'] !== true ||
+                $response['status'] != true ||
+                $response['status'] != 1 ||
                 !isset($response['data']) ||
                 !is_array($response['data']) ||
                 count($response['data']) === 0
             ) {
                 $error = 'IP restricted!';
-                error_log("IP restricted! " . $response);
+                error_log("IP restricted! " . json_encode($response));
                 return [
                     'success' => false,
-                    'message' => 'IP restricted!'
+                    'message' => 'IP restricted!' . $clientIp
                 ];
             }
             curl_close($ch);
@@ -73,7 +76,7 @@ class Auth
             try {
                 $user = $this->db->fetchOne($sql, [$username]);
             } catch (Throwable $e) {
-                if (strpos((string)$e->getMessage(), 'totp_') !== false || strpos((string)$e->getMessage(), '1054') !== false) {
+                if (strpos((string) $e->getMessage(), 'totp_') !== false || strpos((string) $e->getMessage(), '1054') !== false) {
                     $sql = "SELECT id, username, password, full_name, email, role, status, created_at, last_login 
                             FROM users WHERE username = ? AND status = 'active'";
                     $user = $this->db->fetchOne($sql, [$username]);
@@ -148,7 +151,7 @@ class Auth
 
             $sql = "SELECT id, username, password, full_name, email, role, status, totp_secret, totp_enabled 
                     FROM users WHERE id = ? AND status = 'active'";
-            $user = $this->db->fetchOne($sql, [(int)$userId]);
+            $user = $this->db->fetchOne($sql, [(int) $userId]);
 
             if (!$user || empty($user['totp_secret']) || empty($user['totp_enabled'])) {
                 return ['success' => false, 'message' => 'Invalid or expired session. Please login again.'];
@@ -190,7 +193,7 @@ class Auth
         try {
             require_once __DIR__ . '/TotpHelper.php';
 
-            $user = $this->db->fetchOne("SELECT id, username, full_name FROM users WHERE id = ?", [(int)$userId]);
+            $user = $this->db->fetchOne("SELECT id, username, full_name FROM users WHERE id = ?", [(int) $userId]);
             if (!$user) {
                 return ['success' => false, 'message' => 'User not found'];
             }
@@ -225,7 +228,7 @@ class Auth
 
             $this->db->execute(
                 "UPDATE users SET totp_secret = ?, totp_enabled = 1 WHERE id = ?",
-                [$secret, (int)$userId]
+                [$secret, (int) $userId]
             );
 
             return ['success' => true, 'message' => 'Two-factor authentication enabled successfully.'];
@@ -243,7 +246,7 @@ class Auth
         try {
             $this->db->execute(
                 "UPDATE users SET totp_secret = NULL, totp_enabled = 0 WHERE id = ?",
-                [(int)$userId]
+                [(int) $userId]
             );
             return ['success' => true, 'message' => 'Two-factor authentication disabled.'];
         } catch (Exception $e) {
@@ -349,10 +352,11 @@ class Auth
                     FROM users WHERE id = ?";
             $row = $this->db->fetchOne($sql, [$id]);
         } catch (Throwable $e) {
-            if (strpos((string)$e->getMessage(), 'totp_') !== false || strpos((string)$e->getMessage(), '1054') !== false) {
+            if (strpos((string) $e->getMessage(), 'totp_') !== false || strpos((string) $e->getMessage(), '1054') !== false) {
                 $sql = "SELECT id, username, full_name, email, role, status, created_at, last_login FROM users WHERE id = ?";
                 $row = $this->db->fetchOne($sql, [$id]);
-                if ($row) $row['totp_enabled'] = 0;
+                if ($row)
+                    $row['totp_enabled'] = 0;
             } else {
                 throw $e;
             }

@@ -188,7 +188,7 @@ class SalesController {
         }
         
         if (!records || records.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted">No sales records found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="13" class="text-center text-muted">No sales records found</td></tr>';
             return;
         }
         
@@ -197,14 +197,15 @@ class SalesController {
             html += `
                 <tr>
                     <td>${record.id || ''}</td>
-                    <td>${record.invoice_num || ''}</td>
-                    <td>${Utils.formatDate(record.dated)}</td>
-                    <td title="${record.business_name || ''}">${this.truncateText(record.business_name || '', 20)}</td>
-                    <td>${record.sales_rep || ''}</td>
+                    <td>${record.Invoice_Num || ''}</td>
+                    <td>${Utils.formatDate(record.Dated)}</td>
+                    <td title="${record.Business_Name || ''}">${this.truncateText(record.Business_Name || '', 20)}</td>
+                    <td>${record.Sales_Rep || ''}</td>
                     <td title="${record.product || ''}">${this.truncateText(record.product || '', 25)}</td>
-                    <td class="text-right">${parseFloat(record.quantity || 0).toFixed(2)}</td>
-                    <td class="text-right">$${parseFloat(record.unit_price || 0).toFixed(2)}</td>
-                    <td class="text-right">$${parseFloat(record.line_revenue || 0).toFixed(2)}</td>
+                    <td title="${record.Delivery_Profile || ''}">${this.truncateText(record.Delivery_Profile || '', 15)}</td>
+                    <td class="text-right">${parseFloat(record.Quantity || 0).toFixed(2)}</td>
+                    <td class="text-right">$${parseFloat(record.Unit_Price || 0).toFixed(2)}</td>
+                    <td class="text-right">$${parseFloat(record.Purchase_Price || 0).toFixed(2)}</td>
                     <td class="text-right">$${parseFloat(record.gross_profit || 0).toFixed(2)}</td>
                     <td class="text-right">${parseFloat(record.gp_margin || 0).toFixed(1)}%</td>
                     <td>
@@ -354,24 +355,15 @@ class SalesController {
     populateForm(record) {
         const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
         setVal('recordId', record.id);
-        setVal('businessName', record.business_name);
-        setVal('deliveryName', record.delivery_name);
-        setVal('deliveryRoutes', record.delivery_routes);
-        setVal('salesRep', record.sales_rep);
-        setVal('accountType', record.account_type);
-        setVal('address', record.address);
-        setVal('invoiceNum', record.invoice_num);
-        setVal('orderNum', record.order_num);
-        setVal('dated', Utils.getDatePart(record.dated));
+        setVal('businessName', record.Business_Name);
+        setVal('salesRep', record.Sales_Rep);
+        setVal('invoiceNum', record.Invoice_Num);
+        setVal('dated', Utils.getDatePart(record.Dated));
         setVal('product', record.product);
-        setVal('stockId', record.stock_id);
-        setVal('quantity', record.quantity);
-        setVal('unitPrice', record.unit_price);
-        setVal('unitGst', record.unit_gst);
-        setVal('totalAmount', record.total_amount);
-        setVal('poNumber', record.po_number);
-        setVal('purchasePrice', record.purchase_price);
-        setVal('rewardInclusive', record.reward_inclusive || 'No');
+        setVal('deliveryProfile', record.Delivery_Profile);
+        setVal('quantity', record.Quantity);
+        setVal('unitPrice', record.Unit_Price);
+        setVal('purchasePrice', record.Purchase_Price);
     }
     
     async saveRecord() {

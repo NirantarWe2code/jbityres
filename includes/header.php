@@ -173,11 +173,21 @@ $pageTitle = $pageTitle ?? 'Dashboard';
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
                         <li class="nav-item">
                             <a href="<?php echo BASE_URL; ?>/pages/dashboard/index.php" 
-                               class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], '/dashboard/') !== false) ? 'active' : ''; ?>">
+                               class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], '/dashboard/') !== false && strpos($_SERVER['REQUEST_URI'], '/jbi-dashboard/') === false) ? 'active' : ''; ?>">
                                 <i class="nav-icon fas fa-tachometer-alt"></i>
                                 <p>Dashboard</p>
                             </a>
                         </li>
+                        
+                        <?php if (hasPermission('dashboard.view')): ?>
+                        <li class="nav-item">
+                            <a href="<?php echo BASE_URL; ?>/pages/jbi-dashboard/index.php" 
+                               class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], '/jbi-dashboard/') !== false) ? 'active' : ''; ?>">
+                                <i class="nav-icon fas fa-chart-line"></i>
+                                <p>JBI Dashboard</p>
+                            </a>
+                        </li>
+                        <?php endif; ?>
                         
                         <?php if (hasPermission('sales.view')): ?>
                         <li class="nav-item">
