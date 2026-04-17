@@ -8,7 +8,7 @@ requirePermission('dashboard.view');
 
 $pageTitle = 'JBI Full Dashboard';
 $breadcrumbs = [
-    ['title' => 'Home', 'url' => BASE_URL . '/pages/dashboard/index.php'],
+    ['title' => 'Home', 'url' => BASE_URL . '/pages/jbi-dashboard/index.php'],
     ['title' => 'JBI Full Dashboard']
 ];
 

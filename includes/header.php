@@ -171,14 +171,6 @@ $pageTitle = $pageTitle ?? 'Dashboard';
                 <!-- Sidebar Menu -->
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
-                        <li class="nav-item">
-                            <a href="<?php echo BASE_URL; ?>/pages/dashboard/index.php" 
-                               class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], '/dashboard/') !== false && strpos($_SERVER['REQUEST_URI'], '/jbi-dashboard/') === false) ? 'active' : ''; ?>">
-                                <i class="nav-icon fas fa-tachometer-alt"></i>
-                                <p>Dashboard</p>
-                            </a>
-                        </li>
-                        
                         <?php if (hasPermission('dashboard.view')): ?>
                         <li class="nav-item">
                             <a href="<?php echo BASE_URL; ?>/pages/jbi-dashboard/index.php" 
@@ -195,13 +187,6 @@ $pageTitle = $pageTitle ?? 'Dashboard';
                                class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], '/sales/') !== false) ? 'active' : ''; ?>">
                                 <i class="nav-icon fas fa-chart-bar"></i>
                                 <p>Sales Reports</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="<?php echo BASE_URL; ?>/pages/tyre-dashboard/index.php" 
-                               class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], '/tyre-dashboard/') !== false) ? 'active' : ''; ?>">
-                                <i class="nav-icon fas fa-tachometer-alt"></i>
-                                <p>Tyre Analytics</p>
                             </a>
                         </li>
                         <?php endif; ?>

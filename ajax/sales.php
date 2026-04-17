@@ -170,16 +170,53 @@ function handleUpdateRecord($dataSource) {
         jsonResponse(false, 'Invalid record ID');
     }
     
+    // Send both lowercase and legacy-cased keys so update works with either schema.
+    $businessName = sanitize($_POST['business_name'] ?? '');
+    $salesRep = sanitize($_POST['sales_rep'] ?? '');
+    $invoiceNum = sanitize($_POST['invoice_num'] ?? '');
+    $dated = $_POST['dated'] ?? '';
+    $product = sanitize($_POST['product'] ?? '');
+    $deliveryProfile = sanitize($_POST['delivery_profile'] ?? '');
+    $quantity = (float)($_POST['quantity'] ?? 0);
+    $unitPrice = (float)($_POST['unit_price'] ?? 0);
+    $purchasePrice = (float)($_POST['purchase_price'] ?? 0);
+    $totalAmount = (float)($_POST['total_amount'] ?? 0);
+    if ($totalAmount <= 0 && $quantity > 0 && $unitPrice > 0) {
+        $totalAmount = round($quantity * $unitPrice, 2);
+    }
+    $poNumber = sanitize($_POST['po_number'] ?? '');
+    $rewardInclusive = sanitize($_POST['reward_inclusive'] ?? '');
+    $deliveryRoutes = sanitize($_POST['delivery_routes'] ?? '');
+
     $data = [
-        'Dated' => $_POST['dated'] ?? '',
-        'Business_Name' => sanitize($_POST['business_name'] ?? ''),
-        'Sales_Rep' => sanitize($_POST['sales_rep'] ?? ''),
-        'Invoice_Num' => sanitize($_POST['invoice_num'] ?? ''),
-        'product' => sanitize($_POST['product'] ?? ''),
-        'Delivery_Profile' => sanitize($_POST['delivery_profile'] ?? ''),
-        'Quantity' => (float)($_POST['quantity'] ?? 0),
-        'Unit_Price' => (float)($_POST['unit_price'] ?? 0),
-        'Purchase_Price' => (float)($_POST['purchase_price'] ?? 0)
+        // Canonical keys
+        'dated' => $dated,
+        'business_name' => $businessName,
+        'sales_rep' => $salesRep,
+        'invoice_num' => $invoiceNum,
+        'product' => $product,
+        'delivery_profile' => $deliveryProfile,
+        'quantity' => $quantity,
+        'unit_price' => $unitPrice,
+        'purchase_price' => $purchasePrice,
+        'total_amount' => $totalAmount,
+        'po_number' => $poNumber,
+        'reward_inclusive' => $rewardInclusive,
+        'delivery_routes' => $deliveryRoutes,
+
+        // Legacy-cased keys
+        'Dated' => $dated,
+        'Business_Name' => $businessName,
+        'Sales_Rep' => $salesRep,
+        'Invoice_Num' => $invoiceNum,
+        'Delivery_Profile' => $deliveryProfile,
+        'Quantity' => $quantity,
+        'Unit_Price' => $unitPrice,
+        'Purchase_Price' => $purchasePrice,
+        'Total_Amount' => $totalAmount,
+        'PONumber' => $poNumber,
+        'Reward_inclusive' => $rewardInclusive,
+        'Delivery_Routes' => $deliveryRoutes
     ];
     
     $result = $dataSource->updateRecord($id, $data);

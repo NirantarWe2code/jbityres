@@ -23,7 +23,7 @@ define('DB_NAME', env('DB_NAME', 'sales'));
 // Application Configuration
 define('APP_NAME', env('APP_NAME', 'Final Report System'));
 define('APP_VERSION', env('APP_VERSION', '1.0.0'));
-define('BASE_URL', env('BASE_URL', 'http://localhost/finalReport'));
+define('BASE_URL', env('BASE_URL', 'http://localhost/projects/jbityres'));
 
 // Security Configuration
 define('SESSION_TIMEOUT', (int) env('SESSION_TIMEOUT', 3600));

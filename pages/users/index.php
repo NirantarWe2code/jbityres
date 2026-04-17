@@ -8,7 +8,7 @@ requirePermission('users.view');
 
 $pageTitle = 'User Management';
 $breadcrumbs = [
-    ['title' => 'Home', 'url' => BASE_URL . '/pages/dashboard/index.php'],
+    ['title' => 'Home', 'url' => BASE_URL . '/pages/jbi-dashboard/index.php'],
     ['title' => 'User Management']
 ];
 

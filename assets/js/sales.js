@@ -188,33 +188,70 @@ class SalesController {
         }
         
         if (!records || records.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="13" class="text-center text-muted">No sales records found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="27" class="text-center text-muted">No sales records found</td></tr>';
             return;
         }
         
         let html = '';
         records.forEach(record => {
+            const businessName = this.getField(record, ['business_name', 'Business_Name']);
+            const deliveryProfile = this.getField(record, ['delivery_profile', 'Delivery_Profile', 'delivery_name', 'Delivery_Name']);
+            const salesRep = this.getField(record, ['sales_rep', 'Sales_Rep']);
+            const accountType = this.getField(record, ['account_type', 'AccountType']);
+            const address = this.getField(record, ['address', 'customer_address']);
+            const invoiceNum = this.getField(record, ['invoice_num', 'Invoice_Num']);
+            const orderNum = this.getField(record, ['order_num', 'Order_Num']);
+            const dated = this.getField(record, ['dated', 'Dated']);
+            const product = this.getField(record, ['product', 'Product']);
+            const stockId = this.getField(record, ['stock_id', 'Stock_ID']);
+            const quantity = this.toNumber(this.getField(record, ['quantity', 'Quantity']));
+            const unitPrice = this.toNumber(this.getField(record, ['unit_price', 'Unit_Price']));
+            const unitGst = this.toNumber(this.getField(record, ['unit_gst', 'Unit_GST']));
+            const totalAmount = this.toNumber(this.getField(record, ['total_amount', 'Total_Amount', 'line_revenue']));
+            const poNumber = this.getField(record, ['po_number', 'PONumber']);
+            const purchasePrice = this.toNumber(this.getField(record, ['purchase_price', 'Purchase_Price']));
+            const rewardInclusive = this.getField(record, ['reward_inclusive', 'Reward_inclusive']);
+            const lineRevenue = this.toNumber(this.getField(record, ['line_revenue', 'total_amount', 'Total_Amount']));
+            const revenueIncGst = this.toNumber(this.getField(record, ['revenue_inc_gst'])) || (lineRevenue * 1.1);
+            const grossProfit = this.toNumber(this.getField(record, ['gross_profit'])) || (lineRevenue - (quantity * purchasePrice));
+            const gpMargin = this.toNumber(this.getField(record, ['gp_margin'])) || (lineRevenue > 0 ? ((grossProfit / lineRevenue) * 100) : 0);
+            const productBrand = this.getField(record, ['product_brand']) || (product ? product.split('-')[0].trim() : '');
+            const createdAt = this.getField(record, ['created_at', 'imported_at']);
+            const updatedAt = this.getField(record, ['updated_at']);
+            const createdBy = this.getField(record, ['created_by']);
+
             html += `
                 <tr>
                     <td>${record.id || ''}</td>
-                    <td>${record.Invoice_Num || ''}</td>
-                    <td>${Utils.formatDate(record.Dated)}</td>
-                    <td title="${record.Business_Name || ''}">${this.truncateText(record.Business_Name || '', 20)}</td>
-                    <td>${record.Sales_Rep || ''}</td>
-                    <td title="${record.product || ''}">${this.truncateText(record.product || '', 25)}</td>
-                    <td title="${record.Delivery_Profile || ''}">${this.truncateText(record.Delivery_Profile || '', 15)}</td>
-                    <td class="text-right">${parseFloat(record.Quantity || 0).toFixed(2)}</td>
-                    <td class="text-right">$${parseFloat(record.Unit_Price || 0).toFixed(2)}</td>
-                    <td class="text-right">$${parseFloat(record.Purchase_Price || 0).toFixed(2)}</td>
-                    <td class="text-right">$${parseFloat(record.gross_profit || 0).toFixed(2)}</td>
-                    <td class="text-right">${parseFloat(record.gp_margin || 0).toFixed(1)}%</td>
+                    <td title="${businessName || ''}">${this.truncateText(businessName || '', 28)}</td>
+                    <td title="${deliveryProfile || ''}">${this.truncateText(deliveryProfile || '', 24)}</td>
+                    <td>${salesRep || ''}</td>
+                    <td>${accountType || ''}</td>
+                    <td title="${address || ''}">${this.truncateText(address || '', 34)}</td>
+                    <td>${invoiceNum || ''}</td>
+                    <td>${orderNum || ''}</td>
+                    <td>${Utils.formatDate(dated)}</td>
+                    <td title="${product || ''}">${this.truncateText(product || '', 34)}</td>
+                    <td>${stockId || ''}</td>
+                    <td class="text-right">${quantity.toFixed(2)}</td>
+                    <td class="text-right">$${unitPrice.toFixed(2)}</td>
+                    <td class="text-right">$${unitGst.toFixed(2)}</td>
+                    <td class="text-right">$${totalAmount.toFixed(2)}</td>
+                    <td>${poNumber || ''}</td>
+                    <td class="text-right">$${purchasePrice.toFixed(2)}</td>
+                    <td>${rewardInclusive || ''}</td>
+                    <td class="text-right">$${lineRevenue.toFixed(2)}</td>
+                    <td class="text-right">$${revenueIncGst.toFixed(2)}</td>
+                    <td class="text-right">$${grossProfit.toFixed(2)}</td>
+                    <td class="text-right">${gpMargin.toFixed(2)}%</td>
+                    <td>${productBrand || ''}</td>
+                    <td>${Utils.formatDate(createdAt)}</td>
+                    <td>${Utils.formatDate(updatedAt)}</td>
+                    <td>${createdBy || ''}</td>
                     <td>
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-info btn-sm" onclick="viewRecord(${record.id})" title="View Details">
                                 <i class="fas fa-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-warning btn-sm" onclick="editRecord(${record.id})" title="Edit Record">
-                                <i class="fas fa-edit"></i>
                             </button>
                             <button type="button" class="btn btn-danger btn-sm" onclick="deleteRecord(${record.id})" title="Delete Record">
                                 <i class="fas fa-trash"></i>
@@ -228,6 +265,20 @@ class SalesController {
         tbody.innerHTML = html;
     }
     
+    getField(record, keys) {
+        for (const key of keys) {
+            if (record[key] !== undefined && record[key] !== null) {
+                return record[key];
+            }
+        }
+        return '';
+    }
+
+    toNumber(value) {
+        const parsed = parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
     truncateText(text, maxLength) {
         if (!text) return '';
         return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
@@ -354,16 +405,21 @@ class SalesController {
     
     populateForm(record) {
         const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+        const fromRecord = (keys) => this.getField(record, keys);
         setVal('recordId', record.id);
-        setVal('businessName', record.Business_Name);
-        setVal('salesRep', record.Sales_Rep);
-        setVal('invoiceNum', record.Invoice_Num);
-        setVal('dated', Utils.getDatePart(record.Dated));
-        setVal('product', record.product);
-        setVal('deliveryProfile', record.Delivery_Profile);
-        setVal('quantity', record.Quantity);
-        setVal('unitPrice', record.Unit_Price);
-        setVal('purchasePrice', record.Purchase_Price);
+        setVal('businessName', fromRecord(['business_name', 'Business_Name']));
+        setVal('salesRep', fromRecord(['sales_rep', 'Sales_Rep']));
+        setVal('invoiceNum', fromRecord(['invoice_num', 'Invoice_Num']));
+        setVal('dated', Utils.getDatePart(fromRecord(['dated', 'Dated'])));
+        setVal('product', fromRecord(['product', 'Product']));
+        setVal('deliveryProfile', fromRecord(['delivery_profile', 'Delivery_Profile', 'delivery_name', 'Delivery_Name']));
+        setVal('quantity', fromRecord(['quantity', 'Quantity']));
+        setVal('unitPrice', fromRecord(['unit_price', 'Unit_Price']));
+        setVal('purchasePrice', fromRecord(['purchase_price', 'Purchase_Price']));
+        setVal('totalAmount', fromRecord(['total_amount', 'Total_Amount', 'line_revenue']));
+        setVal('poNumber', fromRecord(['po_number', 'PONumber']));
+        setVal('rewardInclusive', fromRecord(['reward_inclusive', 'Reward_inclusive']));
+        setVal('deliveryRoutes', fromRecord(['delivery_routes', 'Delivery_Routes']));
     }
     
     async saveRecord() {
@@ -499,7 +555,7 @@ class SalesController {
         const tbody = document.querySelector('#salesTable tbody');
         tbody.innerHTML = `
             <tr>
-                <td colspan="12" class="text-center text-danger py-4">
+                <td colspan="27" class="text-center text-danger py-4">
                     <i class="fas fa-exclamation-triangle fa-2x mb-3 d-block"></i>
                     Failed to load sales data
                     <br>

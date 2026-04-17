@@ -8,7 +8,7 @@ requirePermission('sales.view');
 
 $pageTitle = 'Sales Reports';
 $breadcrumbs = [
-    ['title' => 'Home', 'url' => BASE_URL . '/pages/dashboard/index.php'],
+    ['title' => 'Home', 'url' => BASE_URL . '/pages/jbi-dashboard/index.php'],
     ['title' => 'Sales Reports']
 ];
 
@@ -106,28 +106,42 @@ include __DIR__ . '/../../includes/header.php';
                     </div>
                 </div>
             </div>
-            <div class="card-body table-responsive p-0">
-                                                                            <table id="salesTable" class="table table-striped table-hover table-sm">
+            <div class="card-body table-responsive p-0" style="overflow-x: auto; overflow-y: hidden;">
+                                                                            <table id="salesTable" class="table table-striped table-hover table-sm" style="min-width: 3600px;">
                         <thead class="thead-dark">
                             <tr>
                                 <th style="width: 60px;">id</th>
-                                <th style="width: 100px;">invoice_num</th>
-                                <th style="width: 100px;">dated</th>
-                                <th style="width: 150px;">business_name</th>
+                                <th style="width: 160px;">business_name</th>
+                                <th style="width: 140px;">delivery_profile</th>
                                 <th style="width: 100px;">sales_rep</th>
-                                <th style="width: 200px;">product</th>
-                                <th style="width: 120px;">delivery_profile</th>
+                                <th style="width: 110px;">account_type</th>
+                                <th style="width: 220px;">address</th>
+                                <th style="width: 100px;">invoice_num</th>
+                                <th style="width: 90px;">order_num</th>
+                                <th style="width: 120px;">dated</th>
+                                <th style="width: 220px;">product</th>
+                                <th style="width: 90px;">stock_id</th>
                                 <th style="width: 80px;" class="text-right">quantity</th>
-                                <th style="width: 80px;" class="text-right">unit_price</th>
-                                <th style="width: 80px;" class="text-right">purchase_price</th>
-                                <th style="width: 80px;" class="text-right">gross_profit</th>
-                                <th style="width: 70px;" class="text-right">gp_margin</th>
+                                <th style="width: 90px;" class="text-right">unit_price</th>
+                                <th style="width: 90px;" class="text-right">unit_gst</th>
+                                <th style="width: 100px;" class="text-right">total_amount</th>
+                                <th style="width: 90px;">po_number</th>
+                                <th style="width: 100px;" class="text-right">purchase_price</th>
+                                <th style="width: 120px;">reward_inclusive</th>
+                                <th style="width: 100px;" class="text-right">line_revenue</th>
+                                <th style="width: 110px;" class="text-right">revenue_inc_gst</th>
+                                <th style="width: 95px;" class="text-right">gross_profit</th>
+                                <th style="width: 80px;" class="text-right">gp_margin</th>
+                                <th style="width: 120px;">product_brand</th>
+                                <th style="width: 140px;">created_at</th>
+                                <th style="width: 140px;">updated_at</th>
+                                <th style="width: 90px;">created_by</th>
                                 <th style="width: 120px;" class="text-center">actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="13" class="text-center">
+                                <td colspan="27" class="text-center">
                                     <div class="spinner-border spinner-border-sm" role="status">
                                         <span class="sr-only">Loading...</span>
                                     </div>
@@ -331,3 +345,10 @@ function deleteRecord(id) {
 
 include __DIR__ . '/../../includes/footer.php';
 ?>
+
+<style>
+#salesTable th,
+#salesTable td {
+    white-space: nowrap;
+}
+</style>

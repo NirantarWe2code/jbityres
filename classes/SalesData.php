@@ -80,7 +80,7 @@ class SalesData
             $selectColumns = $this->buildSelectColumns();
 
             // Sorting
-            $orderBy = "ORDER BY id DESC";
+            $orderBy = "ORDER BY id ASC";
             if (!empty($filters["sort_column"]) && in_array($filters["sort_column"], $this->getTableColumns())) {
                 $direction = (!empty($filters["sort_direction"]) && strtoupper($filters["sort_direction"]) === "ASC") ? "ASC" : "DESC";
                 $orderBy = "ORDER BY " . $filters["sort_column"] . " $direction";
