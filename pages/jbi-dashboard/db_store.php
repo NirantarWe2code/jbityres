@@ -48,6 +48,22 @@ function sales_data_year_where_clause(string $dtExpr): string
     return "(`Dated` LIKE CONCAT(?, '-%') OR `Dated` LIKE CONCAT(?, '/%') OR YEAR(" . $dtExpr . ") = ?)";
 }
 
+/** API/cron sync table — same logical rows as sales_data for dashboard aggregates. */
+function final_salesreportdata_exists(): bool
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+    $res = db()->query("SHOW TABLES LIKE 'final_salesreportdata'");
+    $cached = $res && $res->num_rows > 0;
+    if ($res) {
+        $res->free();
+    }
+
+    return $cached;
+}
+
 function normalize_dated_for_storage(string $datedRaw): string
 {
     $dparts = dashboard_parse_dated_parts($datedRaw);
@@ -233,9 +249,29 @@ function list_sales_data_years(): array
          ORDER BY y'
     );
     $out = [];
-    while ($row = $stmt->fetch_assoc()) {
-        $out[] = (int) $row['y'];
+    if ($stmt) {
+        while ($row = $stmt->fetch_assoc()) {
+            $out[] = (int) $row['y'];
+        }
+        $stmt->free();
     }
+
+    if (final_salesreportdata_exists()) {
+        $stmt2 = db()->query(
+            'SELECT DISTINCT YEAR(dated) AS y FROM final_salesreportdata WHERE dated IS NOT NULL ORDER BY y'
+        );
+        if ($stmt2) {
+            while ($row = $stmt2->fetch_assoc()) {
+                $y = (int) $row['y'];
+                if ($y > 0 && !in_array($y, $out, true)) {
+                    $out[] = $y;
+                }
+            }
+            $stmt2->free();
+        }
+    }
+
+    sort($out, SORT_NUMERIC);
 
     return $out;
 }
@@ -259,6 +295,31 @@ function fetch_all_sales_data_for_year(int $year): array
     $result = $stmt->get_result();
     $rows = $result->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
+
+    if (final_salesreportdata_exists()) {
+        $stmt2 = $conn->prepare(
+            'SELECT DATE_FORMAT(dated, \'%Y-%m-%d %H:%i:%s\') AS `Dated`,
+                    business_name AS `Business_Name`,
+                    sales_rep AS `Sales_Rep`,
+                    invoice_num AS `Invoice_Num`,
+                    product AS `product`,
+                    COALESCE(NULLIF(TRIM(delivery_name), \'\'), NULLIF(TRIM(delivery_routes), \'\'), \'\') AS `Delivery_Profile`,
+                    quantity AS `Quantity`,
+                    unit_price AS `Unit_Price`,
+                    purchase_price AS `Purchase_Price`
+             FROM final_salesreportdata
+             WHERE YEAR(dated) = ?'
+        );
+        if ($stmt2) {
+            $stmt2->bind_param('i', $year);
+            $stmt2->execute();
+            $res2 = $stmt2->get_result();
+            if ($res2) {
+                $rows = array_merge($rows, $res2->fetch_all(MYSQLI_ASSOC));
+            }
+            $stmt2->close();
+        }
+    }
 
     return $rows;
 }

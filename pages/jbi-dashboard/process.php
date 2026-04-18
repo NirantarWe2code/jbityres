@@ -57,6 +57,39 @@ try {
         redirect_index();
     }
 
+    if ($action === 'set_selected_years') {
+        $raw = $_POST['years'] ?? [];
+        if (!is_array($raw)) {
+            $raw = $raw !== '' && $raw !== null ? [(string) $raw] : [];
+        }
+        $selected = [];
+        foreach ($raw as $v) {
+            $yi = (int) $v;
+            if ($yi > 0) {
+                $selected[] = $yi;
+            }
+        }
+        $selected = array_values(array_unique($selected));
+        sort($selected, SORT_NUMERIC);
+        $validAll = list_sales_data_years();
+        $selected = array_values(array_filter($selected, static fn ($y) => in_array($y, $validAll, true)));
+        if ($selected === []) {
+            $_SESSION['hidden_years'] = [];
+            $_SESSION['active_years'] = $validAll;
+        } else {
+            $_SESSION['hidden_years'] = array_values(array_filter($validAll, static fn ($y) => !in_array($y, $selected, true)));
+            $_SESSION['active_years'] = $selected;
+        }
+        foreach (['cust_year', 'activity_year', 'area_year', 'brand_chart_year'] as $sk) {
+            if (isset($_SESSION[$sk]) && !in_array((int) $_SESSION[$sk], $_SESSION['active_years'], true)) {
+                unset($_SESSION[$sk]);
+            }
+        }
+        clear_dashboard_data_cache();
+        $_SESSION['flash_storage_msg'] = '✓ Compare years updated';
+        redirect_index();
+    }
+
     if ($action === 'toggle_year') {
         $y = (int) ($_POST['year'] ?? 0);
         $active = $_SESSION['active_years'] ?? [];

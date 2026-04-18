@@ -5,6 +5,7 @@
  * @var array<string,string> $C
  * @var array<int,array>     $yearData
  * @var list<int>            $years
+ * @var list<int>            $yearsAll
  * @var list<int>            $activeYears
  * @var list<int>            $shownYears
  * @var string               $view
@@ -81,23 +82,79 @@ if ($custAnalytics) {
     </div>
   </div>
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-    <?php foreach ($years as $i => $y):
-        $yc = YEAR_COLORS[$i % count(YEAR_COLORS)];
-        $on = in_array($y, $activeYears, true);
+    <?php
+    if ($hasData && isset($yearsAll) && $yearsAll !== []):
+        $yAllPicker = array_values(array_map('intval', $yearsAll));
+        sort($yAllPicker, SORT_NUMERIC);
+        $actPicker = array_values(array_map('intval', $activeYears));
+        sort($actPicker, SORT_NUMERIC);
+        $pickerAllOn = $actPicker !== [] && $actPicker === $yAllPicker;
+        if ($pickerAllOn) {
+            $pickerBtnLabel = 'All years (' . count($actPicker) . ')';
+        } elseif ($actPicker === []) {
+            $pickerBtnLabel = 'Select years';
+        } else {
+            $pickerBtnLabel = count($actPicker) <= 3
+                ? implode(', ', $actPicker)
+                : implode(', ', array_slice($actPicker, 0, 2)) . ' +' . (count($actPicker) - 2);
+        }
         ?>
-      <div style="display:flex;align-items:center;gap:0">
-        <form method="post" action="process.php" style="margin:0">
-          <input type="hidden" name="action" value="toggle_year">
-          <input type="hidden" name="year" value="<?= (int) $y ?>">
-          <button type="submit" style="background:<?= $on ? h($yc) . '20' : 'transparent' ?>;border:1px solid <?= $on ? h($yc) : h($C['dim']) ?>;border-right:none;color:<?= $on ? h($yc) : h($C['muted']) ?>;border-radius:20px 0 0 20px;padding:5px 14px;cursor:pointer;font-size:13px;font-weight:700;<?= h($stylesMono) ?>"><?= (int) $y ?></button>
-        </form>
-        <form method="post" action="process.php" style="margin:0" onsubmit="return confirm('Remove <?= (int) $y ?> data from saved storage?');">
-          <input type="hidden" name="action" value="remove_year">
-          <input type="hidden" name="year" value="<?= (int) $y ?>">
-          <button type="submit" title="Remove <?= (int) $y ?> from storage" style="background:transparent;border:1px solid <?= $on ? h($yc) : h($C['dim']) ?>;border-left:1px solid <?= h($C['dim']) ?>;color:<?= h($C['dim']) ?>;border-radius:0 20px 20px 0;padding:5px 8px;cursor:pointer;font-size:11px;line-height:1">✕</button>
-        </form>
-      </div>
-    <?php endforeach; ?>
+      <form method="post" action="process.php" style="margin:0;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <input type="hidden" name="action" value="set_selected_years">
+        <span style="font-size:12px;color:<?= h($C['muted']) ?>;font-weight:600;white-space:nowrap;padding-top:8px">Years (compare)</span>
+        <div class="jbi-year-picker" style="position:relative">
+          <button type="button" class="jbi-year-picker__toggle" aria-expanded="false" aria-haspopup="true" style="min-width:160px;text-align:left;background:<?= h($C['surface']) ?>;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:8px 32px 8px 12px;cursor:pointer;font-size:13px;font-weight:600;<?= h($stylesMono) ?>;position:relative">
+            <?= h($pickerBtnLabel) ?>
+            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:<?= h($C['muted']) ?>">▾</span>
+          </button>
+          <div class="jbi-year-picker__panel" hidden style="position:absolute;left:0;top:calc(100% + 6px);min-width:220px;max-height:280px;overflow-y:auto;background:<?= h($C['surface']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,0.45);z-index:400;padding:8px 0">
+            <?php foreach ($yAllPicker as $yy): ?>
+              <label class="jbi-year-picker__row" style="display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:13px;color:<?= h($C['text']) ?>;<?= h($stylesMono) ?>;user-select:none">
+                <input type="checkbox" name="years[]" value="<?= (int) $yy ?>" <?= in_array((int) $yy, $activeYears, true) ? 'checked' : '' ?> style="width:16px;height:16px;accent-color:<?= h($C['teal']) ?>;cursor:pointer">
+                <span><?= (int) $yy ?></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <button type="submit" style="background:<?= h($C['teal']) ?>;color:<?= h($C['bg']) ?>;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;margin-top:2px">Apply</button>
+        <span style="font-size:10px;color:<?= h($C['dim']) ?>;max-width:200px;line-height:1.35;padding-top:4px">Tick years to compare, then Apply. No ticks + Apply = show all years.</span>
+      </form>
+      <style>
+        .jbi-year-picker__panel .jbi-year-picker__row:hover { background: <?= h($C['bg']) ?>33; }
+      </style>
+      <script>
+      (function () {
+        document.addEventListener('DOMContentLoaded', function () {
+          var root = document.querySelector('.jbi-year-picker');
+          if (!root) return;
+          var btn = root.querySelector('.jbi-year-picker__toggle');
+          var panel = root.querySelector('.jbi-year-picker__panel');
+          if (!btn || !panel) return;
+          function closePicker() {
+            panel.setAttribute('hidden', '');
+            btn.setAttribute('aria-expanded', 'false');
+          }
+          function openPicker() {
+            panel.removeAttribute('hidden');
+            btn.setAttribute('aria-expanded', 'true');
+          }
+          function isOpen() {
+            return !panel.hasAttribute('hidden');
+          }
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (isOpen()) closePicker(); else openPicker();
+          });
+          document.addEventListener('click', function (e) {
+            if (!root.contains(e.target)) closePicker();
+          });
+          document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closePicker();
+          });
+        });
+      })();
+      </script>
+    <?php endif; ?>
     <?php if ($hasData): ?>
       <div style="display:flex;align-items:center;gap:6px;margin-left:6px">
         <form method="post" action="process.php" style="margin:0">

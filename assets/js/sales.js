@@ -188,7 +188,7 @@ class SalesController {
         }
         
         if (!records || records.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="27" class="text-center text-muted">No sales records found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">No sales records found</td></tr>';
             return;
         }
         
@@ -203,22 +203,6 @@ class SalesController {
             const orderNum = this.getField(record, ['order_num', 'Order_Num']);
             const dated = this.getField(record, ['dated', 'Dated']);
             const product = this.getField(record, ['product', 'Product']);
-            const stockId = this.getField(record, ['stock_id', 'Stock_ID']);
-            const quantity = this.toNumber(this.getField(record, ['quantity', 'Quantity']));
-            const unitPrice = this.toNumber(this.getField(record, ['unit_price', 'Unit_Price']));
-            const unitGst = this.toNumber(this.getField(record, ['unit_gst', 'Unit_GST']));
-            const totalAmount = this.toNumber(this.getField(record, ['total_amount', 'Total_Amount', 'line_revenue']));
-            const poNumber = this.getField(record, ['po_number', 'PONumber']);
-            const purchasePrice = this.toNumber(this.getField(record, ['purchase_price', 'Purchase_Price']));
-            const rewardInclusive = this.getField(record, ['reward_inclusive', 'Reward_inclusive']);
-            const lineRevenue = this.toNumber(this.getField(record, ['line_revenue', 'total_amount', 'Total_Amount']));
-            const revenueIncGst = this.toNumber(this.getField(record, ['revenue_inc_gst'])) || (lineRevenue * 1.1);
-            const grossProfit = this.toNumber(this.getField(record, ['gross_profit'])) || (lineRevenue - (quantity * purchasePrice));
-            const gpMargin = this.toNumber(this.getField(record, ['gp_margin'])) || (lineRevenue > 0 ? ((grossProfit / lineRevenue) * 100) : 0);
-            const productBrand = this.getField(record, ['product_brand']) || (product ? product.split('-')[0].trim() : '');
-            const createdAt = this.getField(record, ['created_at', 'imported_at']);
-            const updatedAt = this.getField(record, ['updated_at']);
-            const createdBy = this.getField(record, ['created_by']);
 
             html += `
                 <tr>
@@ -232,22 +216,6 @@ class SalesController {
                     <td>${orderNum || ''}</td>
                     <td>${Utils.formatDate(dated)}</td>
                     <td title="${product || ''}">${this.truncateText(product || '', 34)}</td>
-                    <td>${stockId || ''}</td>
-                    <td class="text-right">${quantity.toFixed(2)}</td>
-                    <td class="text-right">$${unitPrice.toFixed(2)}</td>
-                    <td class="text-right">$${unitGst.toFixed(2)}</td>
-                    <td class="text-right">$${totalAmount.toFixed(2)}</td>
-                    <td>${poNumber || ''}</td>
-                    <td class="text-right">$${purchasePrice.toFixed(2)}</td>
-                    <td>${rewardInclusive || ''}</td>
-                    <td class="text-right">$${lineRevenue.toFixed(2)}</td>
-                    <td class="text-right">$${revenueIncGst.toFixed(2)}</td>
-                    <td class="text-right">$${grossProfit.toFixed(2)}</td>
-                    <td class="text-right">${gpMargin.toFixed(2)}%</td>
-                    <td>${productBrand || ''}</td>
-                    <td>${Utils.formatDate(createdAt)}</td>
-                    <td>${Utils.formatDate(updatedAt)}</td>
-                    <td>${createdBy || ''}</td>
                     <td>
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-info btn-sm" onclick="viewRecord(${record.id})" title="View Details">
@@ -272,11 +240,6 @@ class SalesController {
             }
         }
         return '';
-    }
-
-    toNumber(value) {
-        const parsed = parseFloat(value);
-        return Number.isFinite(parsed) ? parsed : 0;
     }
 
     truncateText(text, maxLength) {
@@ -555,7 +518,7 @@ class SalesController {
         const tbody = document.querySelector('#salesTable tbody');
         tbody.innerHTML = `
             <tr>
-                <td colspan="27" class="text-center text-danger py-4">
+                <td colspan="11" class="text-center text-danger py-4">
                     <i class="fas fa-exclamation-triangle fa-2x mb-3 d-block"></i>
                     Failed to load sales data
                     <br>

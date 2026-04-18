@@ -79,12 +79,21 @@ if (!$canUseCache && $dbError === '') {
 }
 
 $yearsAgg = array_keys($yearData);
-$years = array_values(array_unique(array_merge($yearsAgg, $yearsFromLines)));
-sort($years, SORT_NUMERIC);
+$yearsAll = array_values(array_unique(array_merge($yearsAgg, $yearsFromLines)));
+sort($yearsAll, SORT_NUMERIC);
 
 $hiddenYears = array_values(array_unique(array_map('intval', $_SESSION['hidden_years'] ?? [])));
+$years = $yearsAll;
 if ($hiddenYears !== []) {
-    $years = array_values(array_filter($years, static fn($y) => !in_array((int) $y, $hiddenYears, true)));
+    $years = array_values(array_filter($yearsAll, static fn($y) => !in_array((int) $y, $hiddenYears, true)));
+}
+
+// Saari years hide ho chuki hon lekin DB me ab bhi data ho — default: hidden hata kar DB ke saare saal dikhao.
+if ($years === [] && $yearsAll !== []) {
+    $_SESSION['hidden_years'] = [];
+    $_SESSION['active_years'] = $yearsAll;
+    $years = $yearsAll;
+    $hiddenYears = [];
 }
 
 if (!isset($_SESSION['active_years']) || $_SESSION['active_years'] === []) {
