@@ -72,9 +72,10 @@ class SalesData
 
             $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
 
-            // Count total records
+            // Count total records (fetchOne may be null — never subscript directly)
             $countSql = "SELECT COUNT(*) as count FROM sales_data $whereClause";
-            $totalRecords = $this->db->fetchOne($countSql, $params)["count"] ?? 0;
+            $countRow = $this->db->fetchOne($countSql, $params);
+            $totalRecords = (int) (($countRow['count'] ?? null) ?? 0);
 
             // Get actual column names for SELECT
             $selectColumns = $this->buildSelectColumns();
@@ -104,7 +105,7 @@ class SalesData
                 ]
             ];
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             error_log("Get sales records error: " . $e->getMessage());
             return [
                 "success" => false,

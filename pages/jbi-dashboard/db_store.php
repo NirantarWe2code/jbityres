@@ -236,6 +236,15 @@ function load_all_year_data(): array
     return $out;
 }
 
+/** Years that have dashboard aggregates (year picker + set_selected_years use this set). */
+function list_dashboard_compare_years(): array
+{
+    $out = array_map('intval', array_keys(load_all_year_data()));
+    sort($out, SORT_NUMERIC);
+
+    return array_values($out);
+}
+
 /**
  * @return list<int>
  */

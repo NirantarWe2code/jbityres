@@ -78,8 +78,8 @@ if (!$canUseCache && $dbError === '') {
     ];
 }
 
-$yearsAgg = array_keys($yearData);
-$yearsAll = array_values(array_unique(array_merge($yearsAgg, $yearsFromLines)));
+// Year picker: only years with loaded aggregates (same as list_dashboard_compare_years()).
+$yearsAll = array_values(array_map('intval', array_keys($yearData)));
 sort($yearsAll, SORT_NUMERIC);
 
 $hiddenYears = array_values(array_unique(array_map('intval', $_SESSION['hidden_years'] ?? [])));

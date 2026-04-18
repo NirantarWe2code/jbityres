@@ -1,8 +1,10 @@
 <?php
 /**
- * Sales Data AJAX Handler
- * Uses final_salesreportdata table (FinalReportData)
+ * Sales Data AJAX Handler (sales_data via SalesData)
  */
+
+@ini_set('display_errors', '0');
+@ini_set('html_errors', '0');
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../classes/SalesData.php';
@@ -52,7 +54,7 @@ try {
         default:
             jsonResponse(false, 'Invalid action');
     }
-} catch (Exception $e) {
+} catch (Throwable $e) {
     error_log('Sales AJAX error: ' . $e->getMessage());
     jsonResponse(false, 'An error occurred while processing your request');
 }

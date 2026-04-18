@@ -71,7 +71,7 @@ try {
         }
         $selected = array_values(array_unique($selected));
         sort($selected, SORT_NUMERIC);
-        $validAll = list_sales_data_years();
+        $validAll = list_dashboard_compare_years();
         $selected = array_values(array_filter($selected, static fn ($y) => in_array($y, $validAll, true)));
         if ($selected === []) {
             $_SESSION['hidden_years'] = [];
