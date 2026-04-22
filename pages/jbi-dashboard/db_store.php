@@ -521,31 +521,112 @@ function fetch_sales_rows(int $year, int $limit, int $offset): array
         'SELECT COUNT(*) AS c FROM sales_data
          WHERE ' . $yearWhere
     );
-    $countSt->bind_param('sii', $yearStr, $yearStr, $year);
+    $countSt->bind_param('ssi', $yearStr, $yearStr, $year);
     $countSt->execute();
     $countResult = $countSt->get_result();
     $countRow = $countResult->fetch_assoc();
-    $total = (int) ($countRow['c'] ?? 0);
+    $nSales = (int) ($countRow['c'] ?? 0);
     $countSt->close();
 
     $importedAtSelect = sales_data_has_imported_at() ? 'imported_at' : 'NULL AS imported_at';
-    $st = db()->prepare(
-        'SELECT
-            id, `Dated`, `Business_Name`, `Sales_Rep`, `Invoice_Num`, `product`, `Delivery_Profile`,
-            `Quantity`, `Unit_Price`, `Purchase_Price`, ' . $importedAtSelect . '
-         FROM sales_data
-         WHERE ' . $yearWhere . '
-         ORDER BY id DESC
-         LIMIT ? OFFSET ?'
-    );
-    $st->bind_param('siii', $yearStr, $yearStr, $year, $limit, $offset);
-    $st->execute();
-    $result = $st->get_result();
-    $rows = [];
-    while ($row = $result->fetch_assoc()) {
-        $rows[] = $row;
+
+    if (!final_salesreportdata_exists()) {
+        $st = db()->prepare(
+            'SELECT
+                id, `Dated`, `Business_Name`, `Sales_Rep`, `Invoice_Num`, `product`, `Delivery_Profile`,
+                `Quantity`, `Unit_Price`, `Purchase_Price`, ' . $importedAtSelect . '
+             FROM sales_data
+             WHERE ' . $yearWhere . '
+             ORDER BY id DESC
+             LIMIT ? OFFSET ?'
+        );
+        $st->bind_param('ssiii', $yearStr, $yearStr, $year, $limit, $offset);
+        $st->execute();
+        $result = $st->get_result();
+        $rows = [];
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        $st->close();
+
+        return ['total' => $nSales, 'rows' => $rows];
     }
-    $st->close();
+
+    $nFinal = 0;
+    $cf = db()->prepare('SELECT COUNT(*) AS c FROM final_salesreportdata WHERE YEAR(dated) = ?');
+    if ($cf) {
+        $cf->bind_param('i', $year);
+        $cf->execute();
+        $rf = $cf->get_result();
+        if ($rf) {
+            $nFinal = (int) ($rf->fetch_assoc()['c'] ?? 0);
+        }
+        $cf->close();
+    }
+
+    $total = $nSales + $nFinal;
+    $rows = [];
+    $skipLeft = $offset;
+    $remaining = $limit;
+
+    if ($skipLeft < $nSales) {
+        $take = min($remaining, $nSales - $skipLeft);
+        $st = db()->prepare(
+            'SELECT
+                id, `Dated`, `Business_Name`, `Sales_Rep`, `Invoice_Num`, `product`, `Delivery_Profile`,
+                `Quantity`, `Unit_Price`, `Purchase_Price`, ' . $importedAtSelect . '
+             FROM sales_data
+             WHERE ' . $yearWhere . '
+             ORDER BY id DESC
+             LIMIT ? OFFSET ?'
+        );
+        $st->bind_param('ssiii', $yearStr, $yearStr, $year, $take, $skipLeft);
+        $st->execute();
+        $result = $st->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        $st->close();
+        $remaining -= $take;
+        $skipLeft = 0;
+    } else {
+        $skipLeft -= $nSales;
+    }
+
+    if ($remaining > 0 && $nFinal > 0) {
+        $take = min($remaining, max(0, $nFinal - $skipLeft));
+        if ($take > 0) {
+            $st2 = db()->prepare(
+                'SELECT
+                    id,
+                    DATE_FORMAT(dated, \'%Y-%m-%d %H:%i:%s\') AS `Dated`,
+                    business_name AS `Business_Name`,
+                    sales_rep AS `Sales_Rep`,
+                    invoice_num AS `Invoice_Num`,
+                    product AS `product`,
+                    COALESCE(NULLIF(TRIM(delivery_name), \'\'), NULLIF(TRIM(delivery_routes), \'\'), \'\') AS `Delivery_Profile`,
+                    quantity AS `Quantity`,
+                    unit_price AS `Unit_Price`,
+                    purchase_price AS `Purchase_Price`,
+                    created_at AS imported_at
+                 FROM final_salesreportdata
+                 WHERE YEAR(dated) = ?
+                 ORDER BY id DESC
+                 LIMIT ? OFFSET ?'
+            );
+            if ($st2) {
+                $st2->bind_param('iii', $year, $take, $skipLeft);
+                $st2->execute();
+                $res2 = $st2->get_result();
+                if ($res2) {
+                    while ($row = $res2->fetch_assoc()) {
+                        $rows[] = $row;
+                    }
+                }
+                $st2->close();
+            }
+        }
+    }
 
     return ['total' => $total, 'rows' => $rows];
 }

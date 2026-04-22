@@ -5,7 +5,7 @@
 class SalesController {
     constructor() {
         this.currentPage = 1;
-        this.itemsPerPage = 25;
+        this.itemsPerPage = 100;
         this.sortColumn = null;
         this.sortDirection = 'asc';
         this.filters = {};
@@ -14,6 +14,10 @@ class SalesController {
     
     init() {
         console.log('Sales controller initializing...');
+        const perPageSelect = document.getElementById('salesPerPage');
+        if (perPageSelect) {
+            perPageSelect.value = String(this.itemsPerPage);
+        }
         this.setupEventListeners();
         this.loadFilterOptions();
         this.loadSalesData();
@@ -79,6 +83,17 @@ class SalesController {
         // Export buttons
         $('#exportCsv').on('click', () => this.exportData('csv'));
         $('#exportExcel').on('click', () => this.exportData('excel'));
+
+        // Per-page selector
+        $('#salesPerPage').on('change', (e) => {
+            const nextLimit = parseInt(e.target.value, 10);
+            if (!Number.isFinite(nextLimit) || nextLimit <= 0) {
+                return;
+            }
+            this.itemsPerPage = nextLimit;
+            this.currentPage = 1;
+            this.loadSalesData();
+        });
     }
     
     async loadFilterOptions() {
@@ -188,7 +203,7 @@ class SalesController {
         }
         
         if (!records || records.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted">No sales records found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No sales records found</td></tr>';
             return;
         }
         
@@ -197,10 +212,7 @@ class SalesController {
             const businessName = this.getField(record, ['business_name', 'Business_Name']);
             const deliveryProfile = this.getField(record, ['delivery_profile', 'Delivery_Profile', 'delivery_name', 'Delivery_Name']);
             const salesRep = this.getField(record, ['sales_rep', 'Sales_Rep']);
-            const accountType = this.getField(record, ['account_type', 'AccountType']);
-            const address = this.getField(record, ['address', 'customer_address']);
             const invoiceNum = this.getField(record, ['invoice_num', 'Invoice_Num']);
-            const orderNum = this.getField(record, ['order_num', 'Order_Num']);
             const dated = this.getField(record, ['dated', 'Dated']);
             const product = this.getField(record, ['product', 'Product']);
 
@@ -210,10 +222,7 @@ class SalesController {
                     <td title="${businessName || ''}">${this.truncateText(businessName || '', 28)}</td>
                     <td title="${deliveryProfile || ''}">${this.truncateText(deliveryProfile || '', 24)}</td>
                     <td>${salesRep || ''}</td>
-                    <td>${accountType || ''}</td>
-                    <td title="${address || ''}">${this.truncateText(address || '', 34)}</td>
                     <td>${invoiceNum || ''}</td>
-                    <td>${orderNum || ''}</td>
                     <td>${Utils.formatDate(dated)}</td>
                     <td title="${product || ''}">${this.truncateText(product || '', 34)}</td>
                     <td>
@@ -254,46 +263,73 @@ class SalesController {
             paginationContainer.innerHTML = '';
             return;
         }
-        
-        let html = '<ul class="pagination pagination-sm mb-0">';
-        
-        // Previous button
-        if (pagination.current_page > 1) {
-            html += `
-                <li class="page-item">
-                    <a class="page-link" href="#" onclick="changePage(${pagination.current_page - 1})">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </li>
-            `;
-        }
-        
-        // Page numbers
-        const startPage = Math.max(1, pagination.current_page - 2);
-        const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
-        
-        for (let i = startPage; i <= endPage; i++) {
-            const activeClass = i === pagination.current_page ? 'active' : '';
-            html += `
-                <li class="page-item ${activeClass}">
-                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
-                </li>
-            `;
-        }
-        
-        // Next button
-        if (pagination.current_page < pagination.total_pages) {
-            html += `
-                <li class="page-item">
-                    <a class="page-link" href="#" onclick="changePage(${pagination.current_page + 1})">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </li>
-            `;
-        }
-        
-        html += '</ul>';
+
+        const current = Number(pagination.current_page) || 1;
+        const total = Number(pagination.total_pages) || 1;
+        const visible = this.getVisiblePages(current, total);
+
+        const btnBase = 'border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;font-weight:700;min-width:52px;border:1px solid #243652;background:transparent;color:#e2e8f0;';
+        const btnActive = 'background:#14d8d2;color:#041522;border-color:#14d8d2;';
+        const btnDisabled = 'opacity:.45;cursor:not-allowed;';
+
+        const navBtn = (label, page, disabled) => {
+            const attrs = disabled
+                ? 'type="button" disabled'
+                : `type="button" onclick="changePage(${page})"`;
+            const st = btnBase + (disabled ? btnDisabled : '');
+            return `<button ${attrs} style="${st}">${label}</button>`;
+        };
+
+        const numberBtn = (page) => {
+            const isActive = page === current;
+            const st = btnBase + (isActive ? btnActive : '');
+            if (isActive) {
+                return `<button type="button" disabled style="${st}${btnDisabled}">${page}</button>`;
+            }
+            return `<button type="button" onclick="changePage(${page})" style="${st}">${page}</button>`;
+        };
+
+        let html = '<div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;border:1px solid #1e3353;border-radius:12px;padding:8px 10px;background:rgba(10,22,44,0.35);">';
+        html += navBtn('First', 1, current <= 1);
+        html += navBtn('Prev', current - 1, current <= 1);
+
+        visible.forEach((item) => {
+            if (item === '...') {
+                html += '<span style="color:#64748b;font-weight:700;padding:0 2px;">...</span>';
+            } else {
+                html += numberBtn(item);
+            }
+        });
+
+        html += navBtn('Next', current + 1, current >= total);
+        html += navBtn('Last', total, current >= total);
+        html += '</div>';
+
         paginationContainer.innerHTML = html;
+    }
+
+    getVisiblePages(current, total) {
+        if (total <= 1) return [1];
+
+        const delta = 2;
+        const range = [];
+        for (let i = 1; i <= total; i++) {
+            if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+                range.push(i);
+            }
+        }
+
+        const out = [];
+        let prev = 0;
+        range.forEach((page) => {
+            if (prev) {
+                if (page - prev === 2) out.push(prev + 1);
+                else if (page - prev > 2) out.push('...');
+            }
+            out.push(page);
+            prev = page;
+        });
+        return out;
     }
     
     updateTableInfo(pagination) {
@@ -449,31 +485,56 @@ class SalesController {
         const marginClass = Utils.getMarginClass(record.gp_margin || 0);
         const formattedDate = Utils.formatDate(record.dated);
         const v = (k) => (record[k] ?? '').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const val = (k, fallback = '—') => {
+            const raw = v(k).trim();
+            return raw === '' ? fallback : raw;
+        };
+        const detailItem = (label, value) => `
+            <div class="mb-2 p-2 rounded" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                <div class="text-uppercase fw-bold mb-1" style="font-size:10px;letter-spacing:.05em;color:#cbd5e1;">${label}</div>
+                <div style="font-size:14px;color:#f8fafc;line-height:1.25;">${value}</div>
+            </div>
+        `;
         
         const content = `
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3"><label class="form-label"><strong>Business_Name:</strong></label><p class="form-control-plaintext">${v('business_name')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Delivery_Profile (delivery_name):</strong></label><p class="form-control-plaintext">${v('delivery_name')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>delivery_routes:</strong></label><p class="form-control-plaintext">${v('delivery_routes')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Sales_Rep:</strong></label><p class="form-control-plaintext">${v('sales_rep')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>AccountType:</strong></label><p class="form-control-plaintext">${v('account_type')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>address:</strong></label><p class="form-control-plaintext">${v('address')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Invoice_Num:</strong></label><p class="form-control-plaintext">${v('invoice_num')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Order_Num:</strong></label><p class="form-control-plaintext">${v('order_num')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Dated:</strong></label><p class="form-control-plaintext">${formattedDate}</p></div>
+            <div class="rounded p-2 mb-2" style="background:linear-gradient(135deg, rgba(14,165,233,.15), rgba(20,184,166,.14));border:1px solid rgba(45,212,191,.25);">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <div class="text-uppercase fw-bold" style="font-size:11px;letter-spacing:.06em;color:#cbd5e1;">Invoice</div>
+                        <div style="font-size:18px;font-weight:700;color:#f8fafc;">${val('invoice_num')}</div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-info text-dark px-2 py-1">Rep: ${val('sales_rep')}</span>
+                        <span class="badge bg-secondary px-2 py-1">Date: ${formattedDate || '—'}</span>
+                        <span class="badge bg-${marginClass} px-2 py-1">Margin: ${Utils.formatPercentage(record.gp_margin || 0)}</span>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="mb-3"><label class="form-label"><strong>product:</strong></label><p class="form-control-plaintext">${v('product')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>stock_id:</strong></label><p class="form-control-plaintext">${v('stock_id')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Quantity:</strong></label><p class="form-control-plaintext">${v('quantity')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Unit_Price:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.unit_price || 0)}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Unit_GST:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.unit_gst || 0)}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Total_Amount:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.total_amount || 0)}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>PONumber:</strong></label><p class="form-control-plaintext">${v('po_number')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Purchase_Price:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.purchase_price || 0)}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Reward_inclusive:</strong></label><p class="form-control-plaintext">${v('reward_inclusive')}</p></div>
-                    <div class="mb-3"><label class="form-label"><strong>Gross Profit / GP Margin:</strong></label><p class="form-control-plaintext">${Utils.formatCurrency(record.gross_profit || 0)} / <span class="badge badge-${marginClass}">${Utils.formatPercentage(record.gp_margin || 0)}</span></p></div>
+            </div>
+            <div class="row g-2">
+                <div class="col-lg-4 col-md-6">
+                    ${detailItem('Business Name', val('business_name'))}
+                    ${detailItem('Delivery Profile', val('delivery_name'))}
+                    ${detailItem('Delivery Routes', val('delivery_routes'))}
+                    ${detailItem('Invoice Number', val('invoice_num'))}
+                    ${detailItem('Order Number', val('order_num'))}
+                    ${detailItem('PO Number', val('po_number'))}
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    ${detailItem('Product', val('product'))}
+                    ${detailItem('Stock ID', val('stock_id'))}
+                    ${detailItem('Quantity', val('quantity'))}
+                    ${detailItem('Date', formattedDate || '—')}
+                    ${detailItem('Sales Rep', val('sales_rep'))}
+                    ${detailItem('Reward Inclusive', val('reward_inclusive'))}
+                </div>
+                <div class="col-lg-4 col-md-12">
+                    ${detailItem('Address', val('address'))}
+                    ${detailItem('Unit Price', Utils.formatCurrency(record.unit_price || 0))}
+                    ${detailItem('Unit GST', Utils.formatCurrency(record.unit_gst || 0))}
+                    ${detailItem('Purchase Price', Utils.formatCurrency(record.purchase_price || 0))}
+                    ${detailItem('Total Amount', Utils.formatCurrency(record.total_amount || 0))}
+                    ${detailItem('Gross Profit', Utils.formatCurrency(record.gross_profit || 0))}
+                    ${detailItem('Account Type', val('account_type'))}
                 </div>
             </div>
         `;
@@ -518,7 +579,7 @@ class SalesController {
         const tbody = document.querySelector('#salesTable tbody');
         tbody.innerHTML = `
             <tr>
-                <td colspan="11" class="text-center text-danger py-4">
+                <td colspan="8" class="text-center text-danger py-4">
                     <i class="fas fa-exclamation-triangle fa-2x mb-3 d-block"></i>
                     Failed to load sales data
                     <br>

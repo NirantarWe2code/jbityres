@@ -114,10 +114,7 @@ include __DIR__ . '/../../includes/header.php';
                                 <th style="width: 160px;">business_name</th>
                                 <th style="width: 140px;">delivery_profile</th>
                                 <th style="width: 100px;">sales_rep</th>
-                                <th style="width: 110px;">account_type</th>
-                                <th style="width: 220px;">address</th>
                                 <th style="width: 100px;">invoice_num</th>
-                                <th style="width: 90px;">order_num</th>
                                 <th style="width: 120px;">dated</th>
                                 <th style="width: 220px;">product</th>
                                 <th style="width: 120px;" class="text-center">actions</th>
@@ -125,7 +122,7 @@ include __DIR__ . '/../../includes/header.php';
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="11" class="text-center">
+                                <td colspan="8" class="text-center">
                                     <div class="spinner-border spinner-border-sm" role="status">
                                         <span class="sr-only">Loading...</span>
                                     </div>
@@ -136,14 +133,23 @@ include __DIR__ . '/../../includes/header.php';
                     </table>
             </div>
             <div class="card-footer">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
                         <span id="tableInfo">Showing 0 to 0 of 0 entries</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="salesPerPage" class="mb-0 small">Per page</label>
+                            <select id="salesPerPage" class="form-select form-select-sm" style="width:auto; min-width:90px;">
+                                <option value="50">50</option>
+                                <option value="100" selected>100</option>
+                                <option value="200">200</option>
+                                <option value="500">500</option>
+                            </select>
+                        </div>
                     </div>
-                    <nav>
-                        <div id="pagination"></div>
-                    </nav>
                 </div>
+                <nav class="mt-2 d-flex justify-content-center">
+                    <div id="pagination"></div>
+                </nav>
             </div>
         </div>
     </div>
@@ -269,7 +275,7 @@ include __DIR__ . '/../../includes/header.php';
 
 <!-- View Modal -->
 <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewModalLabel">
@@ -277,7 +283,7 @@ include __DIR__ . '/../../includes/header.php';
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="viewModalBody">
+            <div class="modal-body" id="viewModalBody" style="overflow:hidden;">
                 <!-- Content will be loaded dynamically -->
             </div>
             <div class="modal-footer">
@@ -334,5 +340,27 @@ include __DIR__ . '/../../includes/footer.php';
 #salesTable th,
 #salesTable td {
     white-space: nowrap;
+}
+
+#salesPerPage {
+    background: #0b1a36 !important;
+    color: #f8fafc !important;
+    border: 1px solid #23406a !important;
+    border-radius: 8px !important;
+    min-width: 72px !important;
+    height: 36px;
+    padding: 4px 32px 4px 12px !important;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+#salesPerPage:focus {
+    border-color: #14d8d2 !important;
+    box-shadow: 0 0 0 0.16rem rgba(20, 216, 210, 0.2) !important;
+}
+
+#salesPerPage option {
+    background: #0b1a36;
+    color: #f8fafc;
 }
 </style>

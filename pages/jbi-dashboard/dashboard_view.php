@@ -379,12 +379,276 @@ require __DIR__ . '/dashboard_view_reps_activity.php';
     </table>
   </div>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px">
-    <button id="raw_prev_btn" type="button" style="background:transparent;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:6px 10px;cursor:pointer">Prev</button>
-    <div id="raw_page_meta" style="font-size:12px;color:<?= h($C['muted']) ?>"></div>
-    <button id="raw_next_btn" type="button" style="background:transparent;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:6px 10px;cursor:pointer">Next</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <label for="raw_per_page" style="font-size:12px;color:<?= h($C['muted']) ?>">Per page</label>
+      <select id="raw_per_page" style="background:<?= h($C['surface']) ?>;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:5px 8px;font-size:12px">
+        <option value="50">50</option>
+        <option value="100" selected>100</option>
+        <option value="200">200</option>
+        <option value="500">500</option>
+      </select>
+    </div>
+    <div id="raw_page_meta" style="font-size:12px;color:<?= h($C['muted']) ?>;text-align:center"></div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin-top:10px">
+    <button id="raw_first_btn" type="button" style="background:transparent;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:600">First</button>
+    <button id="raw_prev_btn" type="button" style="background:transparent;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:600">Prev</button>
+    <div id="raw_page_numbers" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px;max-width:100%"></div>
+    <button id="raw_next_btn" type="button" style="background:transparent;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:600">Next</button>
+    <button id="raw_last_btn" type="button" style="background:transparent;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:600">Last</button>
   </div>
 </div>
+<script>
+(function () {
+  var apiUrl = <?= json_encode(BASE_URL . '/pages/jbi-dashboard/raw_rows_api.php', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+  var rawLimit = 100;
+  var rawPage = 1;
+  var loading = false;
+  var rawCachedTotal = 0;
+  var rawCachedYear = 0;
+  var btnBase = 'border-radius:8px;padding:6px 10px;cursor:pointer;font-size:11px;font-weight:700;min-width:36px;border:1px solid <?= h($C['border']) ?>';
+  var btnActive = 'background:<?= h($C['teal']) ?>;color:<?= h($C['bg']) ?>;border-color:<?= h($C['teal']) ?>';
+  var btnIdle = 'background:transparent;color:<?= h($C['text']) ?>';
+
+  function $(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    if (s === null || s === undefined) return '';
+    var d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+  }
+
+  function setErr(msg) {
+    var el = $('raw_rows_error');
+    var meta = $('raw_rows_meta');
+    if (!el) return;
+    if (msg) {
+      el.textContent = msg;
+      el.style.display = 'block';
+    } else {
+      el.textContent = '';
+      el.style.display = 'none';
+    }
+    if (meta && msg) meta.textContent = '';
+  }
+
+  /** @return {(number|string)[]} */
+  function visiblePageLabels(cur, totalP) {
+    if (totalP <= 1) return [1];
+    var delta = 2;
+    var range = [];
+    var i;
+    for (i = 1; i <= totalP; i++) {
+      if (i === 1 || i === totalP || (i >= cur - delta && i <= cur + delta)) {
+        range.push(i);
+      }
+    }
+    var out = [];
+    var last = 0;
+    for (i = 0; i < range.length; i++) {
+      var p = range[i];
+      if (last) {
+        if (p - last === 2) out.push(last + 1);
+        else if (p - last > 2) out.push('…');
+      }
+      out.push(p);
+      last = p;
+    }
+    return out;
+  }
+
+  function renderPageButtons(total, limit, page) {
+    var wrap = $('raw_page_numbers');
+    if (!wrap) return;
+    var totalPages = Math.max(1, Math.ceil(total / limit));
+    if (total === 0) {
+      wrap.innerHTML = '';
+      return;
+    }
+    var labels = visiblePageLabels(page, totalPages);
+    var parts = labels.map(function (lab) {
+      if (lab === '…') {
+        return '<span style="color:<?= h($C['muted']) ?>;padding:0 4px;font-size:12px">…</span>';
+      }
+      var isCur = lab === page;
+      var st = btnBase + ';' + (isCur ? btnActive : btnIdle);
+      return '<button type="button" class="raw-page-num" data-raw-page="' + lab + '" style="' + st + '"' + (isCur ? ' aria-current="page"' : '') + '>' + lab + '</button>';
+    });
+    wrap.innerHTML = parts.join('');
+  }
+
+  function loadRaw(resetPage) {
+    var tbody = $('raw_rows_tbody');
+    var yearEl = $('raw_year');
+    var meta = $('raw_rows_meta');
+    var pageMeta = $('raw_page_meta');
+    var prevBtn = $('raw_prev_btn');
+    var nextBtn = $('raw_next_btn');
+    var firstBtn = $('raw_first_btn');
+    var lastBtn = $('raw_last_btn');
+    var pageNums = $('raw_page_numbers');
+    if (!tbody || !yearEl) return;
+
+    if (resetPage) rawPage = 1;
+    if (loading) return;
+    loading = true;
+    setErr('');
+
+    var year = parseInt(yearEl.value, 10) || 0;
+    var url = apiUrl + '?year=' + encodeURIComponent(String(year))
+      + '&limit=' + encodeURIComponent(String(rawLimit))
+      + '&page=' + encodeURIComponent(String(rawPage));
+
+    fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        loading = false;
+        if (!j || !j.success) {
+          setErr((j && j.message) ? j.message : 'Failed to load');
+          tbody.innerHTML = '';
+          if (pageMeta) pageMeta.textContent = '';
+          if (pageNums) pageNums.innerHTML = '';
+          rawCachedTotal = 0;
+          rawCachedYear = 0;
+          return;
+        }
+        var d = j.data || {};
+        var total = parseInt(d.total, 10) || 0;
+        var rows = Array.isArray(d.rows) ? d.rows : [];
+        var limit = parseInt(d.limit, 10) || rawLimit;
+        var page = parseInt(d.page, 10) || rawPage;
+        var totalPages = Math.max(1, Math.ceil(total / limit));
+        rawCachedTotal = total;
+        rawCachedYear = year;
+
+        if (meta) {
+          meta.textContent = total + ' row' + (total === 1 ? '' : 's') + ' for ' + year;
+        }
+        if (pageMeta) {
+          var from = total === 0 ? 0 : (page - 1) * limit + 1;
+          var to = Math.min((page - 1) * limit + rows.length, total);
+          pageMeta.textContent = total ? ('Showing ' + from + '–' + to + ' of ' + total + ' · Page ' + page + ' / ' + totalPages) : 'No rows';
+        }
+
+        if (rows.length === 0 && total > 0) {
+          var maxPage = totalPages;
+          if (page > maxPage) {
+            rawPage = maxPage;
+            loadRaw(false);
+            return;
+          }
+        }
+
+        var cols = ['id', 'Dated', 'Business_Name', 'Sales_Rep', 'Invoice_Num', 'product', 'Delivery_Profile', 'Quantity', 'Unit_Price', 'Purchase_Price', 'imported_at'];
+        var html = rows.map(function (row) {
+          var tds = cols.map(function (c) {
+            return '<td style="padding:7px 10px;border-bottom:1px solid <?= h($C['border']) ?>;color:<?= h($C['text']) ?>;white-space:nowrap">' + esc(row[c]) + '</td>';
+          }).join('');
+          return '<tr>' + tds + '</tr>';
+        }).join('');
+        tbody.innerHTML = html;
+
+        renderPageButtons(total, limit, page);
+
+        var atEnd = (page - 1) * limit + rows.length >= total || total === 0;
+        if (prevBtn) prevBtn.disabled = page <= 1;
+        if (nextBtn) nextBtn.disabled = atEnd;
+        if (firstBtn) firstBtn.disabled = page <= 1;
+        if (lastBtn) lastBtn.disabled = atEnd || total === 0;
+      })
+      .catch(function (e) {
+        loading = false;
+        setErr(e.message || 'Network error');
+        tbody.innerHTML = '';
+        if (pageMeta) pageMeta.textContent = '';
+        if (pageNums) pageNums.innerHTML = '';
+        rawCachedTotal = 0;
+        rawCachedYear = 0;
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!$('raw_load_btn') || !$('raw_rows_tbody')) return;
+    var perPageEl = $('raw_per_page');
+    if (perPageEl) {
+      var initial = parseInt(perPageEl.value, 10);
+      if (isFinite(initial) && initial > 0) rawLimit = initial;
+      perPageEl.addEventListener('change', function () {
+        var nextLimit = parseInt(perPageEl.value, 10);
+        if (!isFinite(nextLimit) || nextLimit <= 0) return;
+        rawLimit = nextLimit;
+        rawCachedTotal = 0;
+        rawCachedYear = 0;
+        loadRaw(true);
+      });
+    }
+    $('raw_load_btn').addEventListener('click', function () { loadRaw(true); });
+    $('raw_prev_btn').addEventListener('click', function () {
+      if (rawPage > 1) { rawPage--; loadRaw(false); }
+    });
+    $('raw_next_btn').addEventListener('click', function () {
+      rawPage++;
+      loadRaw(false);
+    });
+    $('raw_first_btn').addEventListener('click', function () {
+      if (rawPage !== 1) { rawPage = 1; loadRaw(false); }
+    });
+    $('raw_last_btn').addEventListener('click', function () {
+      var yearEl = $('raw_year');
+      if (!yearEl) return;
+      var y = parseInt(yearEl.value, 10) || 0;
+      if (rawCachedYear === y && rawCachedTotal > 0) {
+        rawPage = Math.max(1, Math.ceil(rawCachedTotal / rawLimit));
+        loadRaw(false);
+        return;
+      }
+      loading = true;
+      setErr('');
+      var url = apiUrl + '?year=' + encodeURIComponent(String(y))
+        + '&limit=' + encodeURIComponent(String(rawLimit))
+        + '&page=1';
+      fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (j) {
+          loading = false;
+          if (!j || !j.success) {
+            setErr((j && j.message) ? j.message : 'Failed to load');
+            return;
+          }
+          var total = parseInt((j.data || {}).total, 10) || 0;
+          var limit = parseInt((j.data || {}).limit, 10) || rawLimit;
+          rawCachedTotal = total;
+          rawCachedYear = y;
+          rawPage = Math.max(1, Math.ceil(total / limit));
+          loadRaw(false);
+        })
+        .catch(function (e) {
+          loading = false;
+          setErr(e.message || 'Network error');
+        });
+    });
+    var numWrap = $('raw_page_numbers');
+    if (numWrap) {
+      numWrap.addEventListener('click', function (ev) {
+        var t = ev.target;
+        if (!t || !t.closest) return;
+        var btn = t.closest('.raw-page-num');
+        if (!btn || !numWrap.contains(btn)) return;
+        var p = parseInt(btn.getAttribute('data-raw-page'), 10);
+        if (!isFinite(p) || p < 1) return;
+        rawPage = p;
+        loadRaw(false);
+      });
+    }
+    loadRaw(true);
+  });
+})();
+</script>
 <?php endif; ?>
 
 <?php endif; // hasData ?>

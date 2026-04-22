@@ -65,7 +65,7 @@ try {
 function handleGetList($dataSource) {
     $page = (int)($_GET['page'] ?? 1);
     $limit = (int)($_GET['limit'] ?? RECORDS_PER_PAGE);
-    $limit = min($limit, MAX_RECORDS_PER_PAGE);
+    $limit = max(1, min($limit, 500));
     
     $filters = [];
     

@@ -83,6 +83,15 @@ if ($view === 'activity' && $latestData && $actD && $areaD):
         return '#00D4C8';
     };
     $totalAreaRev = array_sum(array_map(static fn ($a) => (float) $a['revenue'], $areaD['byArea']));
+    $areaDetailPerPage = 10;
+    $areaDetailTotal = count($areaD['byArea']);
+    $areaDetailPages = max(1, (int) ceil($areaDetailTotal / $areaDetailPerPage));
+    $areaDetailPage = max(1, (int) ($_GET['area_page'] ?? 1));
+    if ($areaDetailPage > $areaDetailPages) {
+        $areaDetailPage = $areaDetailPages;
+    }
+    $areaDetailOffset = ($areaDetailPage - 1) * $areaDetailPerPage;
+    $areaDetailSlice = array_slice($areaD['byArea'], $areaDetailOffset, $areaDetailPerPage);
     ?>
 <div style="display:grid;gap:20px">
   <div style="display:flex;align-items:center;justify-content:space-between;background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:14px 20px">
@@ -226,14 +235,15 @@ if ($view === 'activity' && $latestData && $actD && $areaD):
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($areaD['byArea'] as $i => $a):
-            $bg = $i % 2 === 0 ? $C['surface'] : 'transparent';
+        <?php foreach ($areaDetailSlice as $j => $a):
+            $gi = $areaDetailOffset + $j;
+            $bg = $gi % 2 === 0 ? $C['surface'] : 'transparent';
             $mc = (float) $a['margin'];
             $mcol = $mc < 0 ? $C['rose'] : ($mc < 8 ? $C['gold'] : $C['green']);
-            $yc = YEAR_COLORS[$i % count(YEAR_COLORS)];
+            $yc = YEAR_COLORS[$gi % count(YEAR_COLORS)];
             ?>
           <tr style="background:<?= h($bg) ?>">
-            <td style="padding:9px 12px;color:<?= h($C['muted']) ?>;<?= h($stylesMono) ?>"><?= $i + 1 ?></td>
+            <td style="padding:9px 12px;color:<?= h($C['muted']) ?>;<?= h($stylesMono) ?>"><?= $gi + 1 ?></td>
             <td style="padding:9px 12px;color:<?= h($C['text']) ?>;font-weight:600">
               <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:<?= h($yc) ?>;margin-right:8px"></span><?= h((string) $a['area']) ?>
             </td>
@@ -248,6 +258,25 @@ if ($view === 'activity' && $latestData && $actD && $areaD):
         <?php endforeach; ?>
       </tbody>
     </table>
+    <?php if ($areaDetailPages > 1):
+        $areaPgHref = static function (int $p): string {
+            return $p <= 1 ? 'index.php' : 'index.php?area_page=' . $p;
+        };
+        ?>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:14px;font-size:12px;color:<?= h($C['muted']) ?>">
+        <span style="<?= h($stylesMono) ?>">Page <?= (int) $areaDetailPage ?> / <?= (int) $areaDetailPages ?></span>
+        <?php if ($areaDetailPage > 1): ?>
+          <a href="<?= h($areaPgHref($areaDetailPage - 1)) ?>" style="color:<?= h($C['teal']) ?>;text-decoration:none;font-weight:600">Prev</a>
+        <?php else: ?>
+          <span style="opacity:0.4">Prev</span>
+        <?php endif; ?>
+        <?php if ($areaDetailPage < $areaDetailPages): ?>
+          <a href="<?= h($areaPgHref($areaDetailPage + 1)) ?>" style="color:<?= h($C['teal']) ?>;text-decoration:none;font-weight:600">Next</a>
+        <?php else: ?>
+          <span style="opacity:0.4">Next</span>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
   </div>
 </div>
 <?php endif; ?>
