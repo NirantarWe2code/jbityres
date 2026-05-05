@@ -215,10 +215,19 @@ function dashboard_parse_dated_parts(string $dateStr): ?array
         'm/d/Y H:i',
         'm/d/Y h:i:s A',
         'm/d/Y h:i A',
+        'd/m/Y',
+        'd-m-Y',
+        'Y-m-d',
+        'Y/m/d',
+        'm/d/Y',
         'd M Y H:i:s',
         'd M Y H:i',
+        'd M Y',
+        'd F Y',
         'd-M-Y H:i:s',
         'd-M-Y H:i',
+        'd-M-Y',
+        'd-F-Y',
     ];
     foreach ($formats as $fmt) {
         $dt = DateTimeImmutable::createFromFormat($fmt, $s);
@@ -397,6 +406,42 @@ function parse_sell_report(string $text): array
 }
 
 /**
+ * Last resort: scan row values for something parseable as a date (mis-mapped CSV columns).
+ *
+ * @param array<string, mixed> $row
+ * @return array{0:int,1:int,2:int,3:int,4:int}|null day, month, year, hour, minute
+ */
+function dashboard_infer_date_from_row_values(array $row): ?array
+{
+    foreach ($row as $key => $val) {
+        if (is_string($key) && strpos($key, '__') === 0) {
+            continue;
+        }
+        if ($val === null) {
+            continue;
+        }
+        $s = trim((string) $val);
+        if ($s === '' || strlen($s) < 6 || strlen($s) > 48) {
+            continue;
+        }
+        $dp = dashboard_parse_dated_parts($s);
+        if ($dp !== null) {
+            return $dp;
+        }
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $s, $m)) {
+            $yyyy = (int) $m[1];
+            $mm = (int) $m[2];
+            $dd = (int) $m[3];
+            if ($yyyy >= 1800 && $yyyy <= 2100 && checkdate($mm, $dd, $yyyy)) {
+                return [$dd, $mm, $yyyy, 0, 0];
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
  * One DB row from sales_data (XLS column names) → same shape as parse_sell_report() lines for aggregate().
  *
  * @param array<string, mixed> $row
@@ -407,7 +452,31 @@ function sales_data_row_to_parsed_line(array $row): ?array
     $dated = (string) ($row['Dated'] ?? $row['dated'] ?? '');
     $dparts = dashboard_parse_dated_parts($dated);
     if ($dparts === null) {
-        return null;
+        // MySQL-computed parts (see db_store sales_data_sql_date_parts_select) when string parse fails.
+        $ry = isset($row['__row_year']) ? (int) $row['__row_year'] : 0;
+        if ($ry > 0) {
+            $mm = (int) ($row['__row_month'] ?? 1);
+            $dd = (int) ($row['__row_day'] ?? 1);
+            $hh = (int) ($row['__row_hour'] ?? 0);
+            $ii = (int) ($row['__row_minute'] ?? 0);
+            $mm = max(1, min(12, $mm));
+            $dd = max(1, min(31, $dd));
+            $hh = max(0, min(23, $hh));
+            $ii = max(0, min(59, $ii));
+            if (!checkdate($mm, $dd, $ry)) {
+                $dparts = dashboard_infer_date_from_row_values($row);
+                if ($dparts === null) {
+                    return null;
+                }
+            } else {
+                $dparts = [$dd, $mm, $ry, $hh, $ii];
+            }
+        } else {
+            $dparts = dashboard_infer_date_from_row_values($row);
+            if ($dparts === null) {
+                return null;
+            }
+        }
     }
     [$dd, $mm, $yyyy, $hh, $ii] = $dparts;
     $dated = sprintf('%02d/%02d/%04d %02d:%02d', $dd, $mm, $yyyy, $hh, $ii);
@@ -420,7 +489,7 @@ function sales_data_row_to_parsed_line(array $row): ?array
     $qty = (float) ($row['Quantity'] ?? $row['quantity'] ?? 0);
     $price = (float) ($row['Unit_Price'] ?? $row['unit_price'] ?? 0);
     $cost = (float) ($row['Purchase_Price'] ?? $row['purchase_price'] ?? 0);
-    $product = (string) ($row['product'] ?? '');
+    $product = (string) ($row['product'] ?? $row['Product'] ?? '');
     $brandPart = explode('-', $product, 2);
     $brand = trim($brandPart[0]);
     $delivery = (string) ($row['Delivery_Profile'] ?? $row['delivery_profile'] ?? '');
@@ -522,6 +591,33 @@ function aggregate(array $rows): ?array
             'margin' => $rev > 0 ? ($b['profit'] / $rev) * 100 : 0.0,
         ];
     }, $brands);
+
+    $productMap = [];
+    foreach ($rows as $r) {
+        $p = trim((string) ($r['product'] ?? ''));
+        if ($p === '') {
+            $p = 'Unknown product';
+        }
+        if (!isset($productMap[$p])) {
+            $productMap[$p] = ['product' => $p, 'revenue' => 0.0, 'profit' => 0.0, 'units' => 0.0];
+        }
+        $productMap[$p]['revenue'] += (float) $r['revenue'];
+        $productMap[$p]['profit'] += (float) $r['profit'];
+        $productMap[$p]['units'] += (float) $r['qty'];
+    }
+    $products = array_values($productMap);
+    usort($products, static fn ($a, $b) => $b['units'] <=> $a['units']);
+    $products = array_map(static function ($p) {
+        $rev = $p['revenue'];
+
+        return [
+            'product' => $p['product'],
+            'revenue' => $rev,
+            'profit' => $p['profit'],
+            'units' => $p['units'],
+            'margin' => $rev > 0 ? ($p['profit'] / $rev) * 100 : 0.0,
+        ];
+    }, $products);
 
     $brandMonthly = [];
     foreach ($rows as $r) {
@@ -737,11 +833,17 @@ function aggregate(array $rows): ?array
         $uniqCust[(string) $r['customer']] = true;
     }
 
+    $productDetailSku = build_product_detail_rows($rows, 'sku');
+    $productDetailTyreSize = build_product_detail_rows($rows, 'tyresize');
+
     return [
         'year' => $year,
         'monthly' => $monthly,
         'activeMonths' => $activeMonths,
         'brands' => $brands,
+        'products' => $products,
+        'productDetailSku' => $productDetailSku,
+        'productDetailTyreSize' => $productDetailTyreSize,
         'brandMonthly' => $brandMonthly,
         'reps' => $reps,
         'repMonthly' => $repMonthly,
@@ -760,6 +862,102 @@ function aggregate(array $rows): ?array
             'margin' => $totalRevenue > 0 ? ($totalProfit / $totalRevenue) * 100 : 0.0,
         ],
     ];
+}
+
+/**
+ * Tyre size token e.g. 205-55-16 inside a product description (width-profile-rim).
+ */
+function dashboard_extract_tyre_size(string $product): ?string
+{
+    if (preg_match('/\b(\d{2,3})-(\d{2,3})-(\d{2})\b/', $product, $m)) {
+        return $m[1] . '-' . $m[2] . '-' . $m[3];
+    }
+
+    return null;
+}
+
+/**
+ * Per-SKU or per–tyre-size rows with invoice/customer counts for the product detail table.
+ *
+ * @param list<array<string, mixed>> $rows
+ * @return list<array{brand:string,product:string,units:float,avg_price:float,revenue:float,margin:float,invoices:int,customers:int}>
+ */
+function build_product_detail_rows(array $rows, string $mode): array
+{
+    $mode = $mode === 'tyresize' ? 'tyresize' : 'sku';
+    /** @var array<string, array{product:string,brands:array<string,float>,revenue:float,profit:float,units:float,invoices:array<string,true>,customers:array<string,true>}> $acc */
+    $acc = [];
+
+    foreach ($rows as $r) {
+        $product = trim((string) ($r['product'] ?? ''));
+        if ($product === '') {
+            $product = 'Unknown product';
+        }
+        $brand = trim((string) ($r['brand'] ?? ''));
+        if ($brand === '') {
+            $brand = '—';
+        }
+
+        if ($mode === 'tyresize') {
+            $size = dashboard_extract_tyre_size($product);
+            $key = $size !== null ? $size : "\0PRODUCT\0" . $product;
+            $label = $size !== null ? $size : $product;
+        } else {
+            $key = $product;
+            $label = $product;
+        }
+
+        if (!isset($acc[$key])) {
+            $acc[$key] = [
+                'product' => $label,
+                'brands' => [],
+                'revenue' => 0.0,
+                'profit' => 0.0,
+                'units' => 0.0,
+                'invoices' => [],
+                'customers' => [],
+            ];
+        }
+        $q = (float) $r['qty'];
+        $acc[$key]['revenue'] += (float) $r['revenue'];
+        $acc[$key]['profit'] += (float) $r['profit'];
+        $acc[$key]['units'] += $q;
+        $acc[$key]['brands'][$brand] = ($acc[$key]['brands'][$brand] ?? 0.0) + $q;
+        $inv = (string) $r['invoice'];
+        if ($inv !== '') {
+            $acc[$key]['invoices'][$inv] = true;
+        }
+        $cust = (string) $r['customer'];
+        if ($cust !== '') {
+            $acc[$key]['customers'][$cust] = true;
+        }
+    }
+
+    $out = [];
+    foreach ($acc as $row) {
+        $brands = $row['brands'];
+        arsort($brands, SORT_NUMERIC);
+        $topBrand = '—';
+        foreach ($brands as $bName => $u) {
+            $topBrand = $bName;
+            break;
+        }
+        $rev = $row['revenue'];
+        $units = $row['units'];
+        $out[] = [
+            'brand' => $topBrand,
+            'product' => $row['product'],
+            'units' => $units,
+            'avg_price' => $units > 0 ? $rev / $units : 0.0,
+            'revenue' => $rev,
+            'margin' => $rev > 0 ? ($row['profit'] / $rev) * 100 : 0.0,
+            'invoices' => count($row['invoices']),
+            'customers' => count($row['customers']),
+        ];
+    }
+    usort($out, static fn ($a, $b) => $b['units'] <=> $a['units']);
+
+    return $out;
 }
 
 function fmt_aud(?float $v): string

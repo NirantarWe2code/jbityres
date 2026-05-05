@@ -29,57 +29,42 @@ unset($_SESSION['flash_storage_msg'], $_SESSION['flash_error']);
 $yearData = [];
 $yearsFromLines = [];
 $dbError = '';
-$cacheTtlSeconds = 90;
-$canUseCache = false;
-
-$cachedYearData = $_SESSION['year_data_cache'] ?? null;
-$cachedYearsFromLines = $_SESSION['years_from_lines_cache'] ?? null;
-if (
-    is_array($cachedYearData)
-    && is_array($cachedYearsFromLines)
-    && isset($cachedYearData['generated_at'], $cachedYearData['data'])
-    && isset($cachedYearsFromLines['generated_at'], $cachedYearsFromLines['data'])
-    && (time() - (int) $cachedYearData['generated_at']) <= $cacheTtlSeconds
-    && (time() - (int) $cachedYearsFromLines['generated_at']) <= $cacheTtlSeconds
-    && is_array($cachedYearData['data'])
-    && is_array($cachedYearsFromLines['data'])
-) {
-    $yearData = $cachedYearData['data'];
-    $yearsFromLines = $cachedYearsFromLines['data'];
-    $canUseCache = true;
+$salesDataRowCount = 0;
+$salesDataLoadHint = '';
+// Always read fresh data from DB so dashboard reflects manual inserts immediately.
+try {
+    $yearData = load_all_year_data();
+} catch (Throwable $e) {
+    $dbError = $e->getMessage();
+    $yearData = [];
 }
 
-if (!$canUseCache) {
-    try {
-        $yearData = load_all_year_data();
-    } catch (Throwable $e) {
-        $dbError = $e->getMessage();
-        $yearData = [];
+try {
+    $cntRes = db()->query('SELECT COUNT(*) AS c FROM sales_data');
+    if ($cntRes) {
+        $cr = $cntRes->fetch_assoc();
+        $salesDataRowCount = (int) ($cr['c'] ?? 0);
+        $cntRes->free();
     }
+} catch (Throwable $e) {
+    $salesDataRowCount = 0;
+}
+if ($salesDataRowCount > 0 && $yearData === [] && $dbError === '') {
+    $salesDataLoadHint = 'Table sales_data has ' . $salesDataRowCount . ' row(s), but no rows could be turned into dashboard metrics. '
+        . 'Check that a date column exists (dated / Dated / invoice_date) and quantity & unit_price are set.';
 }
 
-if (!$canUseCache && $dbError === '') {
-    try {
-        $yearsFromLines = list_sales_data_years();
-    } catch (Throwable $e) {
-        $dbError = $dbError ?: $e->getMessage();
-    }
+if ($dbError === '') {
+    // Years already implied by $yearData; skip extra list_sales_data_years() query for performance.
+    $yearsFromLines = array_values(array_map('intval', array_keys($yearData)));
+    sort($yearsFromLines, SORT_NUMERIC);
 }
 
-
-if (!$canUseCache && $dbError === '') {
-    $_SESSION['year_data_cache'] = [
-        'generated_at' => time(),
-        'data' => $yearData,
-    ];
-    $_SESSION['years_from_lines_cache'] = [
-        'generated_at' => time(),
-        'data' => $yearsFromLines,
-    ];
+// Year picker should reflect all years present in DB rows, not only aggregated years.
+$yearsAll = list_sales_data_years();
+if ($yearsAll === []) {
+    $yearsAll = array_values(array_map('intval', array_keys($yearData)));
 }
-
-// Year picker: only years with loaded aggregates (same as list_dashboard_compare_years()).
-$yearsAll = array_values(array_map('intval', array_keys($yearData)));
 sort($yearsAll, SORT_NUMERIC);
 
 $hiddenYears = array_values(array_unique(array_map('intval', $_SESSION['hidden_years'] ?? [])));
@@ -106,9 +91,28 @@ if ($activeYears === [] && $years !== []) {
     $_SESSION['active_years'] = $years;
 }
 
+// If user selects a DB year that is not present in preloaded aggregates (e.g. row-cap path),
+// load that year on-demand so Apply does not land on an empty dashboard.
+foreach ($activeYears as $selYear) {
+    if (isset($yearData[$selYear])) {
+        continue;
+    }
+    try {
+        $aggForYear = build_year_aggregate_on_demand((int) $selYear);
+        if ($aggForYear !== null) {
+            $yearData[$selYear] = $aggForYear;
+        }
+    } catch (Throwable $e) {
+        // Keep dashboard usable even if one selected year fails to hydrate.
+    }
+}
+if ($yearData !== []) {
+    ksort($yearData, SORT_NUMERIC);
+}
+
 $shownYears = array_values(array_filter($activeYears, static fn($y) => isset($yearData[$y])));
 $view = (string) ($_SESSION['view'] ?? 'overview');
-$allowedViews = ['overview', 'monthly', 'brands', 'customers', 'reps', 'activity', 'rawdata'];
+$allowedViews = ['overview', 'monthly', 'brands', 'products', 'customers', 'reps', 'activity', 'rawdata'];
 if (!in_array($view, $allowedViews, true)) {
     $view = 'overview';
 }
@@ -118,10 +122,10 @@ if (!in_array($quickFilter, ['1m', '3m', '6m', 'year'], true)) {
 }
 
 $custTab = (string) ($_SESSION['cust_tab'] ?? 'all');
-$hasData = $years !== [] || $yearData !== [];
+$hasData = $yearData !== [];
 
-$latestYear = count($years) > 0 ? (int) $years[count($years) - 1] : null;
-$prevYear = count($years) >= 2 ? (int) $years[count($years) - 2] : null;
+$latestYear = count($shownYears) > 0 ? (int) $shownYears[count($shownYears) - 1] : null;
+$prevYear = count($shownYears) >= 2 ? (int) $shownYears[count($shownYears) - 2] : null;
 $latestData = ($latestYear !== null && isset($yearData[$latestYear])) ? $yearData[$latestYear] : null;
 $prevData = ($prevYear !== null && isset($yearData[$prevYear])) ? $yearData[$prevYear] : null;
 
@@ -225,47 +229,89 @@ if ($selectedMonthSet !== []) {
 
 $monthlyComparison = $hasData ? compute_monthly_comparison($yearData, $shownYears, $selectedMonths) : [];
 
-$brandData = [];
-if ($latestData) {
-    $brandData = array_slice($latestData['brands'], 0, 15);
-}
-
-$topBrands = compute_top_brands($yearData, $years);
-
-$brandChartYear = isset($_SESSION['brand_chart_year']) ? (int) $_SESSION['brand_chart_year'] : null;
-$brandChartYearEff = ($brandChartYear && isset($yearData[$brandChartYear]))
-    ? $brandChartYear
-    : (int) $latestYear;
-
+$brandData = ($latestData && (($view === 'overview') || ($view === 'brands'))) ? array_slice($latestData['brands'], 0, 15) : [];
+$topBrands = [];
+$brandChartYearEff = (int) $latestYear;
 $brandMonthlyUnits = [];
-if (isset($yearData[$brandChartYearEff]) && $topBrands !== []) {
-    $yd = $yearData[$brandChartYearEff];
-    foreach (DASHBOARD_MONTHS as $mi => $m) {
-        $row = ['month' => $m];
-        foreach ($topBrands as $brand) {
-            $row[$brand] = (int) round($yd['brandMonthly'][$brand][$mi + 1] ?? 0);
+$brandMonthlyPivot = [];
+$pivotColTotals = [];
+if ($view === 'brands') {
+    $topBrands = compute_top_brands($yearData, $years);
+    $brandChartYear = isset($_SESSION['brand_chart_year']) ? (int) $_SESSION['brand_chart_year'] : null;
+    $brandChartYearEff = ($brandChartYear && isset($yearData[$brandChartYear])) ? $brandChartYear : (int) $latestYear;
+    if (isset($yearData[$brandChartYearEff]) && $topBrands !== []) {
+        $yd = $yearData[$brandChartYearEff];
+        foreach (DASHBOARD_MONTHS as $mi => $m) {
+            $row = ['month' => $m];
+            foreach ($topBrands as $brand) {
+                $row[$brand] = (int) round($yd['brandMonthly'][$brand][$mi + 1] ?? 0);
+            }
+            $brandMonthlyUnits[] = $row;
         }
-        $brandMonthlyUnits[] = $row;
     }
+    $brandMonthlyPivot = compute_brand_monthly_pivot($yearData, $years, $topBrands);
+    $pivotColTotals = compute_pivot_col_totals($brandMonthlyPivot, $years);
 }
 
-$brandMonthlyPivot = compute_brand_monthly_pivot($yearData, $years, $topBrands);
-$pivotColTotals = compute_pivot_col_totals($brandMonthlyPivot, $years);
+$productTopByYear = [];
+$productCompareRows = [];
+$productFocusYear = null;
+if ($view === 'products') {
+    foreach ($shownYears as $y) {
+        $productTopByYear[$y] = array_slice($yearData[$y]['products'] ?? [], 0, 10);
+    }
+    $productCompareMap = [];
+    foreach ($shownYears as $y) {
+        foreach (array_slice($yearData[$y]['products'] ?? [], 0, 15) as $p) {
+            $name = (string) ($p['product'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            if (!isset($productCompareMap[$name])) {
+                $productCompareMap[$name] = ['product' => $name, 'total_units' => 0.0];
+            }
+            $units = (float) ($p['units'] ?? 0);
+            $productCompareMap[$name]['total_units'] += $units;
+            $productCompareMap[$name]['units_' . $y] = $units;
+            $productCompareMap[$name]['revenue_' . $y] = (float) ($p['revenue'] ?? 0);
+        }
+    }
+    $productCompareRows = array_values($productCompareMap);
+    usort($productCompareRows, static fn($a, $b) => (float) ($b['total_units'] ?? 0) <=> (float) ($a['total_units'] ?? 0));
+    $productCompareRows = array_slice($productCompareRows, 0, 20);
+    $productYearSel = isset($_SESSION['product_year']) ? (int) $_SESSION['product_year'] : null;
+    $productFocusYear = ($productYearSel !== null && in_array($productYearSel, $shownYears, true))
+        ? $productYearSel
+        : (count($shownYears) > 0 ? (int) $shownYears[count($shownYears) - 1] : null);
+}
 
-$custYearSel = isset($_SESSION['cust_year']) ? (int) $_SESSION['cust_year'] : null;
-$custCurYear = ($custYearSel && isset($yearData[$custYearSel])) ? $custYearSel : (int) $latestYear;
-$yi = array_search($custCurYear, $years, true);
-$custCmpYear = ($yi !== false && $yi > 0) ? $years[$yi - 1] : null;
-$custCurData = $yearData[$custCurYear] ?? null;
-$custCmpData = ($custCmpYear !== null && isset($yearData[$custCmpYear])) ? $yearData[$custCmpYear] : null;
-$custAnalytics = compute_cust_analytics($custCurData, $custCmpData);
+$custCurYear = (int) $latestYear;
+$custCmpYear = null;
+$custCurData = null;
+$custCmpData = null;
+$custAnalytics = null;
+if ($view === 'customers') {
+    $custYearSel = isset($_SESSION['cust_year']) ? (int) $_SESSION['cust_year'] : null;
+    $custCurYear = ($custYearSel && isset($yearData[$custYearSel])) ? $custYearSel : (int) $latestYear;
+    $yi = array_search($custCurYear, $years, true);
+    $custCmpYear = ($yi !== false && $yi > 0) ? $years[$yi - 1] : null;
+    $custCurData = $yearData[$custCurYear] ?? null;
+    $custCmpData = ($custCmpYear !== null && isset($yearData[$custCmpYear])) ? $yearData[$custCmpYear] : null;
+    $custAnalytics = compute_cust_analytics($custCurData, $custCmpData);
+}
 
-$activityYear = isset($_SESSION['activity_year']) ? (int) $_SESSION['activity_year'] : null;
-$areaYear = isset($_SESSION['area_year']) ? (int) $_SESSION['area_year'] : null;
-$actYr = ($activityYear && isset($yearData[$activityYear])) ? $activityYear : (int) $latestYear;
-$areaYr = ($areaYear && isset($yearData[$areaYear])) ? $areaYear : (int) $latestYear;
-$actD = $yearData[$actYr] ?? null;
-$areaD = $yearData[$areaYr] ?? null;
+$actYr = (int) $latestYear;
+$areaYr = (int) $latestYear;
+$actD = null;
+$areaD = null;
+if ($view === 'activity') {
+    $activityYear = isset($_SESSION['activity_year']) ? (int) $_SESSION['activity_year'] : null;
+    $areaYear = isset($_SESSION['area_year']) ? (int) $_SESSION['area_year'] : null;
+    $actYr = ($activityYear && isset($yearData[$activityYear])) ? $activityYear : (int) $latestYear;
+    $areaYr = ($areaYear && isset($yearData[$areaYear])) ? $areaYear : (int) $latestYear;
+    $actD = $yearData[$actYr] ?? null;
+    $areaD = $yearData[$areaYr] ?? null;
+}
 
 /** Chart.js configs keyed by canvas data-chart-id */
 $chartConfigs = [];
