@@ -31,6 +31,7 @@
  * @var string               $storageMsg
  * @var string               $errorFlash
  * @var string               $dbError
+ * @var string               $salesDataLoadHint
  * @var int                  $actYr
  * @var int                  $areaYr
  * @var ?array               $actD
@@ -71,6 +72,11 @@ if ($custAnalytics) {
     <strong>Database:</strong> <?= h($dbError) ?> — in phpMyAdmin create DB <code>tyre_dashboard</code>, import <code>database_sell_report_import.sql</code> (table <code>sales_data</code>), run <code>composer install</code>, and set <code>TYRE_DB_DSN</code> / <code>TYRE_DB_USER</code> / <code>TYRE_DB_PASS</code> if needed.
   </div>
 <?php endif; ?>
+<?php if (($salesDataLoadHint ?? '') !== ''): ?>
+  <div style="background:<?= h($C['gold']) ?>22;border:1px solid <?= h($C['gold']) ?>;border-radius:12px;padding:16px;margin-bottom:16px;color:<?= h($C['text']) ?>;font-size:13px">
+    <strong>Data load:</strong> <?= h($salesDataLoadHint) ?>
+  </div>
+<?php endif; ?>
 
 <!-- Header -->
 <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px">
@@ -101,11 +107,11 @@ if ($custAnalytics) {
         ?>
       <form method="post" action="process.php" style="margin:0;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
         <input type="hidden" name="action" value="set_selected_years">
-        <span style="font-size:12px;color:<?= h($C['muted']) ?>;font-weight:600;white-space:nowrap;padding-top:8px">Years (compare)</span>
+        <span style="font-size:12px;color:<?= h($C['text']) ?>;font-weight:700;white-space:nowrap;padding-top:8px">Years (compare)</span>
         <div class="jbi-year-picker" style="position:relative">
-          <button type="button" class="jbi-year-picker__toggle" aria-expanded="false" aria-haspopup="true" style="min-width:160px;text-align:left;background:<?= h($C['surface']) ?>;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:8px 32px 8px 12px;cursor:pointer;font-size:13px;font-weight:600;<?= h($stylesMono) ?>;position:relative">
+          <button type="button" class="jbi-year-picker__toggle" aria-expanded="false" aria-haspopup="true" style="min-width:160px;text-align:left;background:<?= h($C['surface']) ?>;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:8px 32px 8px 12px;cursor:pointer;font-size:13px;font-weight:700;<?= h($stylesMono) ?>;position:relative">
             <?= h($pickerBtnLabel) ?>
-            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:<?= h($C['muted']) ?>">▾</span>
+            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:<?= h($C['text']) ?>;font-weight:700">▾</span>
           </button>
           <div class="jbi-year-picker__panel" hidden style="position:absolute;left:0;top:calc(100% + 6px);min-width:220px;max-height:280px;overflow-y:auto;background:<?= h($C['surface']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,0.45);z-index:400;padding:8px 0">
             <?php foreach ($yAllPicker as $yy): ?>
@@ -116,8 +122,8 @@ if ($custAnalytics) {
             <?php endforeach; ?>
           </div>
         </div>
-        <button type="submit" style="background:<?= h($C['teal']) ?>;color:<?= h($C['bg']) ?>;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;margin-top:2px">Apply</button>
-        <span style="font-size:10px;color:<?= h($C['dim']) ?>;max-width:200px;line-height:1.35;padding-top:4px">Tick years to compare, then Apply. No ticks + Apply = show all years.</span>
+        <button type="submit" style="background:<?= h($C['teal']) ?>;color:<?= h($C['text']) ?>;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;margin-top:2px">Apply</button>
+        <span style="font-size:10px;font-weight:700;color:<?= h($C['text']) ?>;max-width:200px;line-height:1.35;padding-top:4px">Tick years to compare, then Apply. No ticks + Apply = show all years.</span>
       </form>
       <style>
         .jbi-year-picker__panel .jbi-year-picker__row:hover { background: <?= h($C['bg']) ?>33; }
@@ -160,22 +166,22 @@ if ($custAnalytics) {
         <form method="post" action="process.php" style="margin:0">
           <input type="hidden" name="action" value="set_quick_filter">
           <input type="hidden" name="quick_filter" value="1m">
-          <button type="submit" style="background:<?= $quickFilter === '1m' ? h($C['teal']) : 'transparent' ?>;color:<?= $quickFilter === '1m' ? h($C['bg']) : h($C['muted']) ?>;border:1px solid <?= $quickFilter === '1m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">1 Month</button>
+          <button type="submit" style="background:<?= $quickFilter === '1m' ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '1m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">1 Month</button>
         </form>
         <form method="post" action="process.php" style="margin:0">
           <input type="hidden" name="action" value="set_quick_filter">
           <input type="hidden" name="quick_filter" value="3m">
-          <button type="submit" style="background:<?= $quickFilter === '3m' ? h($C['teal']) : 'transparent' ?>;color:<?= $quickFilter === '3m' ? h($C['bg']) : h($C['muted']) ?>;border:1px solid <?= $quickFilter === '3m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">3 Months</button>
+          <button type="submit" style="background:<?= $quickFilter === '3m' ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '3m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">3 Months</button>
         </form>
         <form method="post" action="process.php" style="margin:0">
           <input type="hidden" name="action" value="set_quick_filter">
           <input type="hidden" name="quick_filter" value="6m">
-          <button type="submit" style="background:<?= $quickFilter === '6m' ? h($C['teal']) : 'transparent' ?>;color:<?= $quickFilter === '6m' ? h($C['bg']) : h($C['muted']) ?>;border:1px solid <?= $quickFilter === '6m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">6 Months</button>
+          <button type="submit" style="background:<?= $quickFilter === '6m' ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '6m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">6 Months</button>
         </form>
         <form method="post" action="process.php" style="margin:0">
           <input type="hidden" name="action" value="set_quick_filter">
           <input type="hidden" name="quick_filter" value="year">
-          <button type="submit" style="background:<?= $quickFilter === 'year' ? h($C['teal']) : 'transparent' ?>;color:<?= $quickFilter === 'year' ? h($C['bg']) : h($C['muted']) ?>;border:1px solid <?= $quickFilter === 'year' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">Year</button>
+          <button type="submit" style="background:<?= $quickFilter === 'year' ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === 'year' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">Year</button>
         </form>
       </div>
     <?php endif; ?>
@@ -204,6 +210,7 @@ if ($custAnalytics) {
           'overview' => '📊 Overview',
           'monthly' => '📅 Monthly Trends',
           'brands' => '🔖 Brands',
+          'products' => '📦 Top Selling Product',
           'customers' => '🏆 Customers',
           'reps' => '👤 Sales Reps',
           'activity' => '⏱ Activity & Areas',
@@ -213,34 +220,39 @@ if ($custAnalytics) {
     <form method="post" action="process.php" style="margin:0">
       <input type="hidden" name="action" value="set_view">
       <input type="hidden" name="view" value="<?= h($vk) ?>">
-      <button type="submit" style="background:<?= $view === $vk ? h($C['teal']) : 'transparent' ?>;color:<?= $view === $vk ? h($C['bg']) : h($C['muted']) ?>;border:1px solid <?= $view === $vk ? h($C['teal']) : h($C['dim']) ?>;border-radius:8px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:600;<?= h($stylesSans) ?>"><?= h($lbl) ?></button>
+      <button type="submit" style="background:<?= $view === $vk ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $view === $vk ? h($C['teal']) : h($C['dim']) ?>;border-radius:8px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:700;<?= h($stylesSans) ?>"><?= h($lbl) ?></button>
     </form>
   <?php endforeach; ?>
 </div>
 
 <?php if ($latestData): ?>
 <!-- KPI row -->
-<div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+<div style="display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap;align-items:stretch">
   <?php
-    $kpi = function (string $label, string $value, ?string $sub, string $color, ?float $trend) use ($C, $stylesSans, $stylesMono) {
-        echo '<div style="background:' . h($C['card']) . ';border:1px solid ' . h($C['border']) . ';border-radius:12px;padding:20px 24px;flex:1;min-width:160px;border-top:3px solid ' . h($color) . ';position:relative;overflow:hidden">';
-        echo '<div style="font-size:11px;color:' . h($C['muted']) . ';letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;' . h($stylesSans) . '">' . h($label) . '</div>';
-        echo '<div style="font-size:28px;font-weight:700;color:' . h($color) . ';' . h($stylesMono) . ';line-height:1">' . $value . '</div>';
+    $kpi = function (string $title, ?string $tagline, string $value, ?string $sub, string $color, ?float $trend) use ($C, $stylesSans, $stylesMono) {
+        echo '<div style="background:' . h($C['card']) . ';border:1px solid ' . h($C['border']) . ';border-radius:14px;padding:22px 22px 24px;flex:1 1 168px;min-width:168px;max-width:100%;border-top:3px solid ' . h($color) . ';display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,0.18)">';
+        echo '<div style="margin-bottom:12px;' . h($stylesSans) . '">';
+        echo '<div style="font-size:14px;font-weight:600;color:#e2e8f0;letter-spacing:-0.01em;line-height:1.25">' . h($title) . '</div>';
+        if ($tagline !== null && $tagline !== '') {
+            echo '<div style="font-size:11px;font-weight:500;color:#94a3b8;margin-top:4px;line-height:1.35">' . h($tagline) . '</div>';
+        }
+        echo '</div>';
+        echo '<div style="font-size:30px;font-weight:700;color:' . h($color) . ';' . h($stylesMono) . ';line-height:1.05;letter-spacing:-0.02em;margin-top:auto">' . $value . '</div>';
         if ($sub) {
-            echo '<div style="font-size:12px;color:' . h($C['muted']) . ';margin-top:6px;' . h($stylesSans) . '">' . h($sub) . '</div>';
+            echo '<div style="font-size:13px;color:#cbd5e1;margin-top:10px;line-height:1.45;' . h($stylesSans) . '">' . h($sub) . '</div>';
         }
         if ($trend !== null) {
             $tc = $trend >= 0 ? $C['green'] : $C['rose'];
-            echo '<div style="font-size:12px;margin-top:6px;color:' . h($tc) . ';' . h($stylesMono) . '">' . ($trend >= 0 ? '▲' : '▼') . ' ' . number_format(abs($trend), 1) . '% vs prev yr</div>';
+            echo '<div style="font-size:12px;margin-top:8px;color:' . h($tc) . ';font-weight:600;' . h($stylesMono) . '">' . ($trend >= 0 ? '▲' : '▼') . ' ' . number_format(abs($trend), 1) . '% vs previous year</div>';
         }
         echo '</div>';
     };
-  $kpi('Revenue ex-GST (' . $latestYear . ')', fmt_aud((float) $latestData['totals']['revenue']), 'inc-GST: ' . fmt_aud((float) $latestData['totals']['revenue'] * 1.1), $C['teal'], $yoyRev);
-  $kpi('Gross Profit (' . $latestYear . ')', fmt_aud((float) $latestData['totals']['profit']), 'Margin: ' . fmt_pct((float) $latestData['totals']['margin']), $C['gold'], $yoyProfit);
-  $kpi('Total Units', fmt_num((float) round($latestData['totals']['units'])), 'Tyres sold', $C['blue'], $yoyUnits);
-  $kpi('Active Customers', (string) (int) $latestData['totals']['customers'], fmt_num((float) $latestData['totals']['invoices']) . ' invoices', $C['purple'], null);
+  $kpi('Revenue', 'Excluding GST · ' . (int) $latestYear, fmt_aud((float) $latestData['totals']['revenue']), 'Including GST ' . fmt_aud((float) $latestData['totals']['revenue'] * 1.1), $C['teal'], $yoyRev);
+  $kpi('Gross profit', (string) (int) $latestYear, fmt_aud((float) $latestData['totals']['profit']), 'GP margin ' . fmt_pct((float) $latestData['totals']['margin']), $C['gold'], $yoyProfit);
+  $kpi('Units sold', 'Total quantity', fmt_num((float) round($latestData['totals']['units'])), 'Tyre units in period', $C['blue'], $yoyUnits);
+  $kpi('Active customers', 'Distinct businesses', (string) (int) $latestData['totals']['customers'], fmt_num((float) $latestData['totals']['invoices']) . ' invoices in period', $C['purple'], null);
   $inv = (float) $latestData['totals']['invoices'];
-  $kpi('Avg Invoice Value', fmt_aud($inv > 0 ? (float) $latestData['totals']['revenue'] / $inv : 0.0), 'ex-GST', $C['green'], null);
+  $kpi('Avg invoice', 'Revenue ÷ invoices', fmt_aud($inv > 0 ? (float) $latestData['totals']['revenue'] / $inv : 0.0), 'Excluding GST', $C['green'], null);
   ?>
 </div>
 <?php endif; ?>
@@ -344,6 +356,340 @@ if ($view === 'monthly' && $latestData):
 require __DIR__ . '/dashboard_view_brands_customers.php';
 require __DIR__ . '/dashboard_view_reps_activity.php';
 ?>
+
+<?php if ($view === 'products' && $shownYears !== []):
+    $focusYear = (int) ($productFocusYear ?? $shownYears[count($shownYears) - 1]);
+    $focusProducts = array_slice($yearData[$focusYear]['products'] ?? [], 0, 20);
+    $focusTop = $focusProducts[0] ?? null;
+    $focusTotals = $yearData[$focusYear]['totals'] ?? [];
+    $focusUnique = count($yearData[$focusYear]['products'] ?? []);
+    $focusTopUnits = (float) ($focusTop['units'] ?? 0);
+    $focusTopName = (string) ($focusTop['product'] ?? '—');
+    $focusAvgPrice = $focusTopUnits > 0 ? (float) ($focusTop['revenue'] ?? 0) / $focusTopUnits : 0.0;
+    $focusAvgGpUnit = $focusTopUnits > 0 ? (float) ($focusTop['profit'] ?? 0) / $focusTopUnits : 0.0;
+    $productDetailMode = (string) ($_SESSION['product_detail_mode'] ?? 'sku');
+    if (!in_array($productDetailMode, ['sku', 'tyresize'], true)) {
+        $productDetailMode = 'sku';
+    }
+    $pdRows = $productDetailMode === 'tyresize'
+        ? ($yearData[$focusYear]['productDetailTyreSize'] ?? [])
+        : ($yearData[$focusYear]['productDetailSku'] ?? []);
+    $pdBrandSet = [];
+    foreach ($pdRows as $pd) {
+        $bn = trim((string) ($pd['brand'] ?? ''));
+        if ($bn !== '' && $bn !== '—') {
+            $pdBrandSet[$bn] = true;
+        }
+    }
+    $pdBrands = array_keys($pdBrandSet);
+    natcasesort($pdBrands);
+    $pdBrands = array_values($pdBrands);
+    $pdCount = count($pdRows);
+    $pdUnitLabel = $productDetailMode === 'tyresize' ? 'sizes' : 'SKUs';
+    ?>
+<div style="display:grid;gap:18px">
+  <div style="display:flex;justify-content:flex-start;align-items:center;flex-wrap:wrap;gap:16px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <?php foreach ($shownYears as $y): ?>
+        <form method="post" action="process.php" style="margin:0">
+          <input type="hidden" name="action" value="set_product_year">
+          <input type="hidden" name="year" value="<?= (int) $y ?>">
+          <button type="submit" style="border:1px solid <?= (int) $y === $focusYear ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:4px 10px;font-size:11px;<?= h($stylesMono) ?>;font-weight:700;color:<?= (int) $y === $focusYear ? h($C['teal']) : h($C['muted']) ?>;background:<?= (int) $y === $focusYear ? h($C['teal']) . '1A' : 'transparent' ?>;cursor:pointer"><?= (int) $y ?></button>
+        </form>
+      <?php endforeach; ?>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <form method="post" action="process.php" style="margin:0">
+        <input type="hidden" name="action" value="set_product_detail_mode">
+        <input type="hidden" name="mode" value="sku">
+        <button type="submit" style="border:1px solid <?= $productDetailMode === 'sku' ? h($C['teal']) : h($C['dim']) ?>;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;<?= h($stylesSans) ?>;color:<?= $productDetailMode === 'sku' ? h($C['bg']) : h($C['muted']) ?>;background:<?= $productDetailMode === 'sku' ? h($C['teal']) : 'transparent' ?>">📦 By Product SKU</button>
+      </form>
+      <form method="post" action="process.php" style="margin:0">
+        <input type="hidden" name="action" value="set_product_detail_mode">
+        <input type="hidden" name="mode" value="tyresize">
+        <button type="submit" style="border:1px solid <?= $productDetailMode === 'tyresize' ? h($C['teal']) : h($C['dim']) ?>;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;<?= h($stylesSans) ?>;color:<?= $productDetailMode === 'tyresize' ? h($C['bg']) : h($C['muted']) ?>;background:<?= $productDetailMode === 'tyresize' ? h($C['teal']) : 'transparent' ?>">△ By Tyre Size</button>
+      </form>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+    <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:14px">
+      <div style="font-size:10px;color:<?= h($C['muted']) ?>;letter-spacing:0.08em;text-transform:uppercase">Unique SKUs</div>
+      <div style="font-size:30px;font-weight:800;color:<?= h($C['teal']) ?>;<?= h($stylesMono) ?>"><?= h(fmt_num((float) $focusUnique)) ?></div>
+    </div>
+    <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:14px">
+      <div style="font-size:10px;color:<?= h($C['muted']) ?>;letter-spacing:0.08em;text-transform:uppercase">Top SKU Units</div>
+      <div style="font-size:30px;font-weight:800;color:<?= h($C['gold']) ?>;<?= h($stylesMono) ?>"><?= h(fmt_num($focusTopUnits)) ?></div>
+    </div>
+    <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:14px">
+      <div style="font-size:10px;color:<?= h($C['muted']) ?>;letter-spacing:0.08em;text-transform:uppercase">Top SKU</div>
+      <div style="font-size:13px;font-weight:700;color:<?= h($C['text']) ?>;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= h($focusTopName) ?></div>
+    </div>
+    <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:14px">
+      <div style="font-size:10px;color:<?= h($C['muted']) ?>;letter-spacing:0.08em;text-transform:uppercase">Avg Sell Price</div>
+      <div style="font-size:30px;font-weight:800;color:<?= h($C['blue']) ?>;<?= h($stylesMono) ?>">A$<?= h(number_format($focusAvgPrice, 0)) ?></div>
+    </div>
+    <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:14px">
+      <div style="font-size:10px;color:<?= h($C['muted']) ?>;letter-spacing:0.08em;text-transform:uppercase">Avg GP / Unit</div>
+      <div style="font-size:30px;font-weight:800;color:<?= h($C['green']) ?>;<?= h($stylesMono) ?>">A$<?= h(number_format($focusAvgGpUnit, 0)) ?></div>
+    </div>
+  </div>
+
+  <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:18px">
+    <div style="font-size:13px;font-weight:700;color:<?= h($C['text']) ?>;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">Top 20 Products by Units Sold — <?= (int) $focusYear ?></div>
+    <?php
+    $maxUnits = 0.0;
+    foreach ($focusProducts as $pp) {
+        $maxUnits = max($maxUnits, (float) ($pp['units'] ?? 0));
+    }
+    ?>
+    <div style="display:grid;gap:10px;margin-top:10px">
+      <?php foreach ($focusProducts as $i => $p):
+          $u = (float) ($p['units'] ?? 0);
+          $mar = (float) ($p['margin'] ?? 0);
+          $barW = $maxUnits > 0 ? max(2.0, min(100.0, ($u / $maxUnits) * 100.0)) : 0.0;
+          $barColor = $mar < 8 ? $C['gold'] : $C['teal'];
+          ?>
+        <div style="display:grid;grid-template-columns:minmax(140px,220px) 1fr auto;gap:10px;align-items:center">
+          <div style="font-size:11px;color:<?= h($C['text']) ?>;<?= h($stylesMono) ?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= ($i + 1) ?>. <?= h((string) ($p['product'] ?? '')) ?></div>
+          <div style="height:14px;background:<?= h($C['bg']) ?>44;border:1px solid <?= h($C['border']) ?>;border-radius:999px;overflow:hidden">
+            <div style="width:<?= h(number_format($barW, 2, '.', '')) ?>%;height:100%;background:<?= h($barColor) ?>;border-radius:999px"></div>
+          </div>
+          <div style="font-size:11px;color:<?= h($C['text']) ?>;<?= h($stylesMono) ?>;font-weight:700;min-width:70px;text-align:right"><?= h(fmt_num($u)) ?></div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+
+  <div id="jbi-product-detail" style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:18px">
+    <div style="margin-bottom:6px">
+      <div style="font-size:13px;font-weight:700;color:<?= h($C['text']) ?>;letter-spacing:0.06em;text-transform:uppercase">Product Detail — <?= (int) $focusYear ?></div>
+      <div style="font-size:11px;color:<?= h($C['muted']) ?>;margin-top:4px"><?= h((string) $pdCount) ?> <?= h($pdUnitLabel) ?> · sorted by units</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:14px;color:<?= h($C['muted']) ?>">🔍</span>
+        <input type="search" id="pd_search" placeholder="Search product.." autocomplete="off" style="box-sizing:border-box;width:min(100%,360px);max-width:360px;flex:0 0 auto;background:<?= h($C['surface']) ?>;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:999px;padding:8px 14px;font-size:12px;<?= h($stylesSans) ?>">
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label for="pd_brand_select" style="font-size:12px;color:<?= h($C['muted']) ?>;white-space:nowrap;<?= h($stylesSans) ?>">Brand</label>
+        <select id="pd_brand_select" style="width:min(100%,420px);max-width:420px;background:<?= h($C['surface']) ?>;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:8px 10px;font-size:12px;<?= h($stylesSans) ?>;cursor:pointer">
+          <option value="">All</option>
+          <?php foreach ($pdBrands as $pillBrand): ?>
+            <option value="<?= h(strtolower((string) $pillBrand)) ?>"><?= h($pillBrand) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px">
+      <div id="pd_page_meta" style="font-size:11px;color:<?= h($C['muted']) ?>;<?= h($stylesSans) ?>"></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button type="button" id="pd_prev" style="background:transparent;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:600;<?= h($stylesSans) ?>">Prev</button>
+        <button type="button" id="pd_next" style="background:transparent;color:<?= h($C['text']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:600;<?= h($stylesSans) ?>">Next</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;margin-top:10px;max-width:100%">
+      <table id="pd_table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:920px">
+        <thead>
+          <tr>
+            <?php foreach (['#', 'Brand', 'Product', 'Units', 'Avg Price', 'Revenue', 'GP Margin', 'Invoices', 'Customers'] as $hcol): ?>
+              <th style="text-align:<?= in_array($hcol, ['#', 'Brand', 'Product'], true) ? 'left' : 'right' ?>;padding:8px 12px;color:<?= h($C['muted']) ?>;border-bottom:1px solid <?= h($C['border']) ?>;font-weight:600;font-size:11px;letter-spacing:0.04em;white-space:nowrap"><?= h($hcol) ?></th>
+            <?php endforeach; ?>
+          </tr>
+        </thead>
+        <tbody id="pd_tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <script type="application/json" id="pd-json-data"><?= json_encode($pdRows, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_INVALID_UTF8_SUBSTITUTE) ?></script>
+  <script>
+  (function () {
+    var root = document.getElementById('jbi-product-detail');
+    var jsonEl = document.getElementById('pd-json-data');
+    var tbody = document.getElementById('pd_tbody');
+    var qIn = document.getElementById('pd_search');
+    var brandSel = document.getElementById('pd_brand_select');
+    var meta = document.getElementById('pd_page_meta');
+    var btnPrev = document.getElementById('pd_prev');
+    var btnNext = document.getElementById('pd_next');
+    if (!root || !jsonEl || !tbody) return;
+    var PD_PER = 20;
+    var C = {
+      surface: '<?= h($C['surface']) ?>',
+      transparent: 'transparent',
+      text: '<?= h($C['text']) ?>',
+      muted: '<?= h($C['muted']) ?>',
+      teal: '<?= h($C['teal']) ?>',
+      gold: '<?= h($C['gold']) ?>',
+      green: '<?= h($C['green']) ?>',
+      rose: '<?= h($C['rose']) ?>',
+      border: '<?= h($C['border']) ?>'
+    };
+    var monoFF = "'Courier New', Courier, monospace";
+    var rows;
+    try {
+      rows = JSON.parse(jsonEl.textContent || '[]');
+      if (!Array.isArray(rows)) rows = [];
+    } catch (e) {
+      rows = [];
+    }
+    var page = 1;
+    function norm(s) { return (String(s || '')).toLowerCase().trim(); }
+    function rowHay(r) {
+      return norm(r.brand) + ' ' + norm(r.product);
+    }
+    function filtered() {
+      var needle = norm(qIn ? qIn.value : '');
+      var bSel = brandSel ? norm(brandSel.value) : '';
+      return rows.filter(function (r) {
+        var b = norm(r.brand);
+        var okB = !bSel || b === bSel;
+        var okQ = !needle || rowHay(r).indexOf(needle) !== -1;
+        return okB && okQ;
+      });
+    }
+    function fmtNum(n) {
+      var x = Math.round(Number(n) || 0);
+      return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+    function fmtAud(n) {
+      return 'A$' + fmtNum(Math.round(Number(n) || 0));
+    }
+    function fmtPct(n) {
+      return (Math.round((Number(n) || 0) * 10) / 10).toFixed(1) + '%';
+    }
+    function marginColor(m) {
+      m = Number(m) || 0;
+      if (m < 8) return C.gold;
+      if (m >= 12) return C.green;
+      return C.text;
+    }
+    function render() {
+      var list = filtered();
+      var total = list.length;
+      var pages = Math.max(1, Math.ceil(total / PD_PER));
+      if (page > pages) page = pages;
+      if (page < 1) page = 1;
+      var start = (page - 1) * PD_PER;
+      var slice = list.slice(start, start + PD_PER);
+      var end = start + slice.length;
+      if (meta) {
+        meta.textContent = total === 0
+          ? 'No rows match · Page 1 of 1'
+          : 'Page ' + page + ' of ' + pages + ' · Showing ' + (start + 1) + '–' + end + ' of ' + total;
+      }
+      if (btnPrev) {
+        btnPrev.disabled = page <= 1 || total === 0;
+        btnPrev.style.opacity = btnPrev.disabled ? '0.45' : '1';
+      }
+      if (btnNext) {
+        btnNext.disabled = page >= pages || total === 0;
+        btnNext.style.opacity = btnNext.disabled ? '0.45' : '1';
+      }
+      tbody.textContent = '';
+      if (slice.length === 0) {
+        var tr0 = document.createElement('tr');
+        var td0 = document.createElement('td');
+        td0.colSpan = 9;
+        td0.style.padding = '20px 12px';
+        td0.style.color = C.muted;
+        td0.style.textAlign = 'center';
+        td0.textContent = 'No matching products.';
+        tr0.appendChild(td0);
+        tbody.appendChild(tr0);
+        return;
+      }
+      slice.forEach(function (r, i) {
+        var idx = start + i + 1;
+        var u = Number(r.units) || 0;
+        var rev = Number(r.revenue) || 0;
+        var margin = Number(r.margin) || 0;
+        var avgP = Number(r.avg_price) || 0;
+        var inv = Number(r.invoices) || 0;
+        var cust = Number(r.customers) || 0;
+        var bg = (start + i) % 2 === 0 ? C.surface : C.transparent;
+        var tr = document.createElement('tr');
+        tr.style.background = bg;
+        function td(txt, opt) {
+          opt = opt || {};
+          var t = document.createElement('td');
+          t.textContent = txt;
+          t.style.padding = '9px 12px';
+          if (opt.mono) t.style.fontFamily = monoFF;
+          if (opt.color) t.style.color = opt.color;
+          if (opt.align) t.style.textAlign = opt.align;
+          if (opt.weight) t.style.fontWeight = opt.weight;
+          if (opt.maxW) {
+            t.style.maxWidth = opt.maxW;
+            t.style.whiteSpace = 'nowrap';
+            t.style.overflow = 'hidden';
+            t.style.textOverflow = 'ellipsis';
+          }
+          tr.appendChild(t);
+        }
+        td(String(idx), { mono: true, color: C.muted });
+        td(String(r.brand != null ? r.brand : ''), { color: C.text, weight: '600' });
+        td(String(r.product != null ? r.product : ''), { color: C.text, maxW: '340px' });
+        td(fmtNum(u), { mono: true, align: 'right', color: C.teal, weight: '700' });
+        td('A$' + fmtNum(Math.round(avgP)), { mono: true, align: 'right' });
+        td(fmtAud(rev), { mono: true, align: 'right', color: C.gold });
+        td(fmtPct(margin), { mono: true, align: 'right', weight: '600', color: marginColor(margin) });
+        td(fmtNum(inv), { mono: true, align: 'right' });
+        td(fmtNum(cust), { mono: true, align: 'right' });
+        tbody.appendChild(tr);
+      });
+    }
+    function resetPage() { page = 1; render(); }
+    if (qIn) qIn.addEventListener('input', resetPage);
+    if (brandSel) brandSel.addEventListener('change', resetPage);
+    if (btnPrev) btnPrev.addEventListener('click', function () {
+      if (page > 1) { page--; render(); }
+    });
+    if (btnNext) btnNext.addEventListener('click', function () {
+      var list = filtered();
+      var pages = Math.max(1, Math.ceil(list.length / PD_PER));
+      if (page < pages) { page++; render(); }
+    });
+    render();
+  })();
+  </script>
+
+  <?php if (count($shownYears) > 1): ?>
+  <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:18px">
+    <div style="font-size:13px;font-weight:700;color:<?= h($C['text']) ?>;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px">Top Selling Product Comparison (Selected Years)</div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:8px 10px;color:<?= h($C['muted']) ?>;border-bottom:1px solid <?= h($C['border']) ?>">#</th>
+            <th style="text-align:left;padding:8px 10px;color:<?= h($C['muted']) ?>;border-bottom:1px solid <?= h($C['border']) ?>">Product</th>
+            <?php foreach ($shownYears as $y): ?>
+              <th style="text-align:right;padding:8px 10px;color:<?= h($C['muted']) ?>;border-bottom:1px solid <?= h($C['border']) ?>"><?= (int) $y ?> Units</th>
+            <?php endforeach; ?>
+            <th style="text-align:right;padding:8px 10px;color:<?= h($C['teal']) ?>;border-bottom:1px solid <?= h($C['border']) ?>">Total Units</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach (array_slice($productCompareRows, 0, 20) as $i => $row):
+              $bg = $i % 2 === 0 ? $C['surface'] : 'transparent';
+              ?>
+            <tr style="background:<?= h($bg) ?>">
+              <td style="padding:8px 10px;color:<?= h($C['muted']) ?>;<?= h($stylesMono) ?>"><?= $i + 1 ?></td>
+              <td style="padding:8px 10px;color:<?= h($C['text']) ?>;font-weight:600;max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= h((string) ($row['product'] ?? '')) ?></td>
+              <?php foreach ($shownYears as $y):
+                  $u = (float) ($row['units_' . $y] ?? 0); ?>
+                <td style="padding:8px 10px;text-align:right;<?= h($stylesMono) ?>;color:<?= $u > 0 ? h($C['text']) : h($C['dim']) ?>"><?= $u > 0 ? h(fmt_num($u)) : '—' ?></td>
+              <?php endforeach; ?>
+              <td style="padding:8px 10px;text-align:right;color:<?= h($C['teal']) ?>;<?= h($stylesMono) ?>;font-weight:700"><?= h(fmt_num((float) ($row['total_units'] ?? 0))) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <?php if ($view === 'rawdata' && $years !== []): ?>
 <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:20px">

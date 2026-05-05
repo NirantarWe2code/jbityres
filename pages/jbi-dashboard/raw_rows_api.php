@@ -14,7 +14,7 @@ $year = (int) ($_GET['year'] ?? 0);
 $page = (int) ($_GET['page'] ?? 1);
 $limit = (int) ($_GET['limit'] ?? 100);
 
-if ($year < 1990 || $year > 2100) {
+if ($year < 1000 || $year > 2100) {
     jsonResponse(false, 'Invalid year', null);
 }
 

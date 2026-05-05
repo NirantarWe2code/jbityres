@@ -33,6 +33,7 @@ function session_defaults(): void
     $_SESSION['view'] ??= 'overview';
     $_SESSION['cust_tab'] ??= 'all';
     $_SESSION['quick_filter'] ??= 'year';
+    $_SESSION['product_detail_mode'] ??= 'sku';
 }
 
 try {
@@ -46,7 +47,7 @@ try {
 
     if ($action === 'set_view') {
         $v = (string) ($_POST['view'] ?? 'overview');
-        $allowed = ['overview', 'monthly', 'brands', 'customers', 'reps', 'activity', 'rawdata'];
+        $allowed = ['overview', 'monthly', 'brands', 'products', 'customers', 'reps', 'activity', 'rawdata'];
         $_SESSION['view'] = in_array($v, $allowed, true) ? $v : 'overview';
         redirect_index();
     }
@@ -71,7 +72,11 @@ try {
         }
         $selected = array_values(array_unique($selected));
         sort($selected, SORT_NUMERIC);
-        $validAll = list_dashboard_compare_years();
+        // Validate against DB-discovered years so picker can keep all real years selectable.
+        $validAll = list_sales_data_years();
+        if ($validAll === []) {
+            $validAll = list_dashboard_compare_years();
+        }
         $selected = array_values(array_filter($selected, static fn ($y) => in_array($y, $validAll, true)));
         if ($selected === []) {
             $_SESSION['hidden_years'] = [];
@@ -80,7 +85,7 @@ try {
             $_SESSION['hidden_years'] = array_values(array_filter($validAll, static fn ($y) => !in_array($y, $selected, true)));
             $_SESSION['active_years'] = $selected;
         }
-        foreach (['cust_year', 'activity_year', 'area_year', 'brand_chart_year'] as $sk) {
+        foreach (['cust_year', 'activity_year', 'area_year', 'brand_chart_year', 'product_year'] as $sk) {
             if (isset($_SESSION[$sk]) && !in_array((int) $_SESSION[$sk], $_SESSION['active_years'], true)) {
                 unset($_SESSION[$sk]);
             }
@@ -129,6 +134,17 @@ try {
         redirect_index();
     }
 
+    if ($action === 'set_product_year') {
+        $_SESSION['product_year'] = (int) ($_POST['year'] ?? 0);
+        redirect_index();
+    }
+
+    if ($action === 'set_product_detail_mode') {
+        $m = (string) ($_POST['mode'] ?? 'sku');
+        $_SESSION['product_detail_mode'] = in_array($m, ['sku', 'tyresize'], true) ? $m : 'sku';
+        redirect_index();
+    }
+
     if ($action === 'remove_year') {
         $y = (int) ($_POST['year'] ?? 0);
         $active = array_values(array_filter($_SESSION['active_years'] ?? [], static fn ($x) => (int) $x !== $y));
@@ -150,6 +166,9 @@ try {
         }
         if (($tmp = $_SESSION['brand_chart_year'] ?? null) === $y) {
             unset($_SESSION['brand_chart_year']);
+        }
+        if (($tmp = $_SESSION['product_year'] ?? null) === $y) {
+            unset($_SESSION['product_year']);
         }
         $_SESSION['flash_storage_msg'] = '✓ ' . $y . ' removed from view';
         redirect_index();
