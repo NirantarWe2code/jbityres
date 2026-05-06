@@ -44,7 +44,7 @@ if (empty($apiBaseUrl) || empty($bearerToken)) {
 }
 out("Config loaded. API: " . $apiBaseUrl);
 
-$defaultDateFrom = date('2020-07-04 H:i:s');
+$defaultDateFrom = date('Y-m-d H:i:s');
 $defaultDateTo = date('Y-m-d H:i:s', strtotime($defaultDateFrom . ' +1 day'));
 ;
 try {

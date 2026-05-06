@@ -8,20 +8,20 @@ declare(strict_types=1);
 const DASHBOARD_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const DASHBOARD_C = [
-    'bg' => '#0A0F1E',
-    'surface' => '#111827',
-    'card' => '#151D2E',
-    'border' => '#1E2D45',
-    'teal' => '#00D4C8',
-    'tealDim' => '#00897B',
-    'gold' => '#FFB74D',
-    'rose' => '#F87171',
-    'blue' => '#60A5FA',
-    'purple' => '#A78BFA',
-    'green' => '#34D399',
-    'text' => '#E2E8F0',
-    'muted' => '#64748B',
-    'dim' => '#334155',
+    'bg' => '#0F172A',
+    'surface' => '#16213A',
+    'card' => '#1D2A45',
+    'border' => '#2F436A',
+    'teal' => '#0EA5A2',
+    'tealDim' => '#0B7F7D',
+    'gold' => '#F59E0B',
+    'rose' => '#EF7373',
+    'blue' => '#3B5FA3',
+    'purple' => '#8B93F8',
+    'green' => '#2FBF8F',
+    'text' => '#F8FAFC',
+    'muted' => '#DCE6F5',
+    'dim' => '#B9C8E4',
 ];
 
 const YEAR_COLORS = ['#00D4C8', '#FFB74D', '#60A5FA', '#A78BFA', '#34D399'];

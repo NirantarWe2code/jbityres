@@ -19,8 +19,8 @@ function h(?string $s): string
 }
 
 $C = DASHBOARD_C;
-$stylesSans = "font-family:'DM Sans','Segoe UI',sans-serif";
-$stylesMono = "font-family:'Courier New',Courier,monospace";
+$stylesSans = "font-family:'Inter','Segoe UI','Helvetica Neue',Arial,sans-serif";
+$stylesMono = "font-family:'JetBrains Mono','Consolas','Courier New',monospace";
 
 $storageMsg = (string) ($_SESSION['flash_storage_msg'] ?? '');
 $errorFlash = (string) ($_SESSION['flash_error'] ?? '');

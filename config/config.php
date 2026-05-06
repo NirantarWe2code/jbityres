@@ -29,6 +29,13 @@ define('BASE_URL', env('BASE_URL', 'http://localhost/jbityres'));
 define('SESSION_TIMEOUT', (int) env('SESSION_TIMEOUT', 3600));
 define('CSRF_TOKEN_NAME', env('CSRF_TOKEN_NAME', 'csrf_token'));
 define('TWO_FACTOR_REQUIRED', env('TWO_FACTOR_REQUIRED', 'true') === 'true');
+// Login flow gates (toggles)
+// - LOGIN_IP_CHECK_ENABLED: if false, skip IP restriction check during login
+// - LOGIN_OTP_ENABLED: if false, skip OTP challenge even if user has TOTP enabled
+define('LOGIN_IP_CHECK_ENABLED', env('LOGIN_IP_CHECK_ENABLED', 'true') === 'true');
+define('LOGIN_OTP_ENABLED', env('LOGIN_OTP_ENABLED', 'true') === 'true');
+// Optional: comma-separated allowlist that bypasses IP restriction check (e.g. "1.2.3.4,5.6.7.8")
+define('LOGIN_IP_BYPASS_LIST', array_values(array_filter(array_map('trim', explode(',', (string) env('LOGIN_IP_BYPASS_LIST', ''))))));
 
 // Pagination Configuration
 define('RECORDS_PER_PAGE', (int) env('RECORDS_PER_PAGE', 25));
@@ -99,7 +106,9 @@ function getBaseUrl()
  */
 function isLoggedIn()
 {
-    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    return isset($_SESSION['user_id'], $_SESSION['auth_verified'])
+        && !empty($_SESSION['user_id'])
+        && $_SESSION['auth_verified'] === true;
 }
 
 /**

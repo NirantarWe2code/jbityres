@@ -204,6 +204,13 @@ if ($custAnalytics) {
 <?php else: ?>
 
 <!-- Nav -->
+<style>
+  .jbi-view-btn:hover {
+    background: <?= h($C['tealDim']) ?> !important;
+    border-color: <?= h($C['tealDim']) ?> !important;
+    color: #ffffff !important;
+  }
+</style>
 <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
   <?php foreach (
       [
@@ -220,7 +227,7 @@ if ($custAnalytics) {
     <form method="post" action="process.php" style="margin:0">
       <input type="hidden" name="action" value="set_view">
       <input type="hidden" name="view" value="<?= h($vk) ?>">
-      <button type="submit" style="background:<?= $view === $vk ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $view === $vk ? h($C['teal']) : h($C['dim']) ?>;border-radius:8px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:700;<?= h($stylesSans) ?>"><?= h($lbl) ?></button>
+      <button type="submit" class="jbi-view-btn" style="background:<?= $view === $vk ? h($C['tealDim']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $view === $vk ? h($C['tealDim']) : h($C['dim']) ?>;border-radius:8px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:700;<?= h($stylesSans) ?>"><?= h($lbl) ?></button>
     </form>
   <?php endforeach; ?>
 </div>

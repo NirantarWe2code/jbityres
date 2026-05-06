@@ -56,7 +56,6 @@ function sales_data_physical_backtick(string $logicalLower): string
 function sales_data_date_column_candidates(): array
 {
     return [
-        'order_num',
         'dated',
         'invoice_date',
         'sale_date',
@@ -64,6 +63,7 @@ function sales_data_date_column_candidates(): array
         'transaction_date',
         'bill_date',
         'd_date',
+        'order_num',
         'created_at',
         'updated_at',
     ];
@@ -207,8 +207,7 @@ function sales_data_datetime_sql_expr(): string
         STR_TO_DATE($c, '%d-%b-%Y'),
         STR_TO_DATE($c, '%d-%M-%Y'),
         NULLIF($c, '0000-00-00 00:00:00'),
-        NULLIF($c, '0000-00-00'),
-        $c
+        NULLIF($c, '0000-00-00')
     )";
 }
 
@@ -248,8 +247,7 @@ function sales_data_datetime_sql_expr_for_column(string $quotedColumn): string
         STR_TO_DATE($c, '%d-%b-%Y'),
         STR_TO_DATE($c, '%d-%M-%Y'),
         NULLIF($c, '0000-00-00 00:00:00'),
-        NULLIF($c, '0000-00-00'),
-        $c
+        NULLIF($c, '0000-00-00')
     )";
 }
 
@@ -261,8 +259,8 @@ function sales_data_year_where_clause(string $dtExpr): string
 {
     $c = sales_data_date_column_backtick();
 
-    // YEAR($c) catches DATE/DATETIME rows where STR_TO_DATE chain is NULL; extra ? bound to same year.
-    return "($c LIKE CONCAT(?, '-%') OR $c LIKE CONCAT(?, '/%') OR YEAR(" . $dtExpr . ") = ? OR YEAR($c) = ?)";
+    // Use parsed datetime expression to avoid treating non-date strings as years (e.g. "2020").
+    return "($c LIKE CONCAT(?, '-%') OR $c LIKE CONCAT(?, '/%') OR YEAR(" . $dtExpr . ") = ?)";
 }
 
 /** Extra SELECT fields so PHP can build rows when string date parsing fails. */
@@ -449,7 +447,7 @@ function sales_data_dashboard_row_cap(): int
 }
 
 /**
- * Load all sales_data + optional final_salesreportdata in 1–2 queries, group by calendar year in PHP.
+ * Load all sales_data rows in one query, group by calendar year in PHP.
  *
  * @return array<int, array<string, mixed>>
  */
@@ -477,35 +475,6 @@ function load_all_year_data_single_pass(): array
         $byYear[$y][] = $line;
     }
     $res->free();
-
-    if (final_salesreportdata_exists()) {
-        $sql2 = 'SELECT DATE_FORMAT(dated, \'%Y-%m-%d %H:%i:%s\') AS `Dated`,
-                business_name AS `Business_Name`,
-                sales_rep AS `Sales_Rep`,
-                invoice_num AS `Invoice_Num`,
-                product AS `product`,
-                COALESCE(NULLIF(TRIM(delivery_name), \'\'), NULLIF(TRIM(delivery_routes), \'\'), \'\') AS `Delivery_Profile`,
-                quantity AS `Quantity`,
-                unit_price AS `Unit_Price`,
-                purchase_price AS `Purchase_Price`
-         FROM final_salesreportdata
-         ORDER BY id ASC LIMIT ' . $cap;
-        $res2 = db()->query($sql2);
-        if ($res2) {
-            while ($row = $res2->fetch_assoc()) {
-                $line = sales_data_row_to_parsed_line($row);
-                if ($line === null) {
-                    continue;
-                }
-                $y = (int) ($line['year'] ?? 0);
-                if ($y < 1 || $y > 9999) {
-                    continue;
-                }
-                $byYear[$y][] = $line;
-            }
-            $res2->free();
-        }
-    }
 
     $out = [];
     foreach ($byYear as $y => $parsed) {
@@ -595,89 +564,36 @@ function list_sales_data_years(): array
         return $memoYears;
     }
 
+    // IMPORTANT: year picker must reflect only the actual business-date column in sales_data.
+    // Older logic scanned many columns and even sales_datad, which could surface "extra" years
+    // (e.g. created_at/import timestamps or invoice numbers containing year tokens).
     $out = [];
-    $m = sales_data_column_map();
-    $yearCols = [];
-    foreach (['order_num', 'dated', 'invoice_date', 'sale_date', 'order_date', 'transaction_date', 'bill_date', 'd_date', 'created_at', 'updated_at'] as $lc) {
-        if (isset($m[$lc])) {
-            $yearCols[] = '`' . str_replace('`', '``', $m[$lc]) . '`';
-        }
-    }
-    if ($yearCols === []) {
-        $yearCols[] = sales_data_date_column_backtick();
-    }
-    $yearCols = array_values(array_unique($yearCols));
-
-    foreach ($yearCols as $colBt) {
-        $dtExpr = sales_data_datetime_sql_expr_for_column($colBt);
-        $stmt = db()->query(
-            'SELECT DISTINCT y FROM (
-                SELECT DISTINCT YEAR(' . $dtExpr . ') AS y
-                 FROM sales_data
-                 WHERE ' . $dtExpr . ' IS NOT NULL
-                UNION
-                SELECT DISTINCT YEAR(' . $colBt . ') AS y
-                 FROM sales_data
-                 WHERE ' . $colBt . ' IS NOT NULL
-                   AND YEAR(' . $colBt . ') > 0
-            ) u
-             WHERE y IS NOT NULL AND y > 0
-             ORDER BY y'
-        );
-        if ($stmt) {
-            while ($row = $stmt->fetch_assoc()) {
-                $y = (int) $row['y'];
-                if ($y > 0 && $y <= 9999 && !in_array($y, $out, true)) {
-                    $out[] = $y;
-                }
+    $dtExpr = sales_data_datetime_sql_expr();
+    $stmt = db()->query(
+        'SELECT DISTINCT YEAR(' . $dtExpr . ') AS y
+         FROM sales_data
+         WHERE ' . $dtExpr . ' IS NOT NULL
+         ORDER BY y'
+    );
+    if ($stmt) {
+        while ($row = $stmt->fetch_assoc()) {
+            $y = (int) ($row['y'] ?? 0);
+            if ($y > 0 && $y <= 9999) {
+                $out[] = $y;
             }
-            $stmt->free();
         }
+        $stmt->free();
     }
 
-    if (final_salesreportdata_exists()) {
-        $stmt2 = db()->query(
-            'SELECT DISTINCT YEAR(dated) AS y FROM final_salesreportdata WHERE dated IS NOT NULL ORDER BY y'
-        );
-        if ($stmt2) {
-            while ($row = $stmt2->fetch_assoc()) {
-                $y = (int) $row['y'];
-                if ($y > 0 && $y <= 9999 && !in_array($y, $out, true)) {
-                    $out[] = $y;
-                }
-            }
-            $stmt2->free();
-        }
-    }
-
+    $out = array_values(array_unique($out));
     sort($out, SORT_NUMERIC);
 
-    if ($out !== []) {
-        sort($out, SORT_NUMERIC);
-        $memoYears = $out;
-
-        return $memoYears;
+    if ($out === []) {
+        // Fallback: parse rows in PHP (still based on the legacy alias SELECT shape).
+        $out = list_sales_data_years_brute_star();
     }
-
-    foreach (list_sales_data_years_brute_star() as $y) {
-        if (!in_array($y, $out, true)) {
-            $out[] = $y;
-        }
-    }
-    foreach (list_sales_data_years_infer_any_column() as $y) {
-        if (!in_array($y, $out, true)) {
-            $out[] = $y;
-        }
-    }
-    foreach (list_sales_datad_years_infer_any_column() as $y) {
-        if (!in_array($y, $out, true)) {
-            $out[] = $y;
-        }
-    }
-    sort($out, SORT_NUMERIC);
 
     $memoYears = $out;
-
     return $memoYears;
 }
 
@@ -807,31 +723,6 @@ function fetch_all_sales_data_for_year(int $year): array
     $rows = $result->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 
-    if (final_salesreportdata_exists()) {
-        $stmt2 = $conn->prepare(
-            'SELECT DATE_FORMAT(dated, \'%Y-%m-%d %H:%i:%s\') AS `Dated`,
-                    business_name AS `Business_Name`,
-                    sales_rep AS `Sales_Rep`,
-                    invoice_num AS `Invoice_Num`,
-                    product AS `product`,
-                    COALESCE(NULLIF(TRIM(delivery_name), \'\'), NULLIF(TRIM(delivery_routes), \'\'), \'\') AS `Delivery_Profile`,
-                    quantity AS `Quantity`,
-                    unit_price AS `Unit_Price`,
-                    purchase_price AS `Purchase_Price`
-             FROM final_salesreportdata
-             WHERE YEAR(dated) = ?'
-        );
-        if ($stmt2) {
-            $stmt2->bind_param('i', $year);
-            $stmt2->execute();
-            $res2 = $stmt2->get_result();
-            if ($res2) {
-                $rows = array_merge($rows, $res2->fetch_all(MYSQLI_ASSOC));
-            }
-            $stmt2->close();
-        }
-    }
-
     return $rows;
 }
 
@@ -872,32 +763,6 @@ function build_year_aggregate_on_demand(int $year): ?array
             }
         }
         $res->free();
-    }
-
-    // Fallback 2: scan final_salesreportdata as well.
-    if (final_salesreportdata_exists()) {
-        $res2 = db()->query(
-            'SELECT DATE_FORMAT(dated, \'%Y-%m-%d %H:%i:%s\') AS `Dated`,
-                    business_name AS `Business_Name`,
-                    sales_rep AS `Sales_Rep`,
-                    invoice_num AS `Invoice_Num`,
-                    product AS `product`,
-                    COALESCE(NULLIF(TRIM(delivery_name), \'\'), NULLIF(TRIM(delivery_routes), \'\'), \'\') AS `Delivery_Profile`,
-                    quantity AS `Quantity`,
-                    unit_price AS `Unit_Price`,
-                    purchase_price AS `Purchase_Price`
-             FROM final_salesreportdata
-             ORDER BY id ASC'
-        );
-        if ($res2) {
-            while ($row = $res2->fetch_assoc()) {
-                $line = sales_data_row_to_parsed_line($row);
-                if ($line !== null && (int) ($line['year'] ?? 0) === $year) {
-                    $parsed[] = $line;
-                }
-            }
-            $res2->free();
-        }
     }
 
     return aggregate($parsed);
@@ -1101,103 +966,24 @@ function fetch_sales_rows(int $year, int $limit, int $offset): array
     $legacyRowSel = sales_data_select_legacy_aliases_sql();
     $partsSel = sales_data_sql_date_parts_select();
 
-    if (!final_salesreportdata_exists()) {
-        $st = db()->prepare(
-            'SELECT
-                id, ' . $legacyRowSel . $partsSel . ', ' . $importedAtSelect . '
-             FROM sales_data
-             WHERE ' . $yearWhere . '
-             ORDER BY id DESC
-             LIMIT ? OFFSET ?'
-        );
-        $st->bind_param('ssiiii', $yearStr, $yearStr, $year, $year, $limit, $offset);
-        $st->execute();
-        $result = $st->get_result();
-        $rows = [];
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
-        }
-        $st->close();
-
-        return ['total' => $nSales, 'rows' => $rows];
-    }
-
-    $nFinal = 0;
-    $cf = db()->prepare('SELECT COUNT(*) AS c FROM final_salesreportdata WHERE YEAR(dated) = ?');
-    if ($cf) {
-        $cf->bind_param('i', $year);
-        $cf->execute();
-        $rf = $cf->get_result();
-        if ($rf) {
-            $nFinal = (int) ($rf->fetch_assoc()['c'] ?? 0);
-        }
-        $cf->close();
-    }
-
-    $total = $nSales + $nFinal;
+    $st = db()->prepare(
+        'SELECT
+            id, ' . $legacyRowSel . $partsSel . ', ' . $importedAtSelect . '
+         FROM sales_data
+         WHERE ' . $yearWhere . '
+         ORDER BY id DESC
+         LIMIT ? OFFSET ?'
+    );
+    $st->bind_param('ssiiii', $yearStr, $yearStr, $year, $year, $limit, $offset);
+    $st->execute();
+    $result = $st->get_result();
     $rows = [];
-    $skipLeft = $offset;
-    $remaining = $limit;
-
-    if ($skipLeft < $nSales) {
-        $take = min($remaining, $nSales - $skipLeft);
-        $st = db()->prepare(
-            'SELECT
-                id, ' . $legacyRowSel . $partsSel . ', ' . $importedAtSelect . '
-             FROM sales_data
-             WHERE ' . $yearWhere . '
-             ORDER BY id DESC
-             LIMIT ? OFFSET ?'
-        );
-        $st->bind_param('ssiiii', $yearStr, $yearStr, $year, $year, $take, $skipLeft);
-        $st->execute();
-        $result = $st->get_result();
-        while ($row = $result->fetch_assoc()) {
-            $rows[] = $row;
-        }
-        $st->close();
-        $remaining -= $take;
-        $skipLeft = 0;
-    } else {
-        $skipLeft -= $nSales;
+    while ($row = $result->fetch_assoc()) {
+        $rows[] = $row;
     }
+    $st->close();
 
-    if ($remaining > 0 && $nFinal > 0) {
-        $take = min($remaining, max(0, $nFinal - $skipLeft));
-        if ($take > 0) {
-            $st2 = db()->prepare(
-                'SELECT
-                    id,
-                    DATE_FORMAT(dated, \'%Y-%m-%d %H:%i:%s\') AS `Dated`,
-                    business_name AS `Business_Name`,
-                    sales_rep AS `Sales_Rep`,
-                    invoice_num AS `Invoice_Num`,
-                    product AS `product`,
-                    COALESCE(NULLIF(TRIM(delivery_name), \'\'), NULLIF(TRIM(delivery_routes), \'\'), \'\') AS `Delivery_Profile`,
-                    quantity AS `Quantity`,
-                    unit_price AS `Unit_Price`,
-                    purchase_price AS `Purchase_Price`,
-                    created_at AS imported_at
-                 FROM final_salesreportdata
-                 WHERE YEAR(dated) = ?
-                 ORDER BY id DESC
-                 LIMIT ? OFFSET ?'
-            );
-            if ($st2) {
-                $st2->bind_param('iii', $year, $take, $skipLeft);
-                $st2->execute();
-                $res2 = $st2->get_result();
-                if ($res2) {
-                    while ($row = $res2->fetch_assoc()) {
-                        $rows[] = $row;
-                    }
-                }
-                $st2->close();
-            }
-        }
-    }
-
-    return ['total' => $total, 'rows' => $rows];
+    return ['total' => $nSales, 'rows' => $rows];
 }
 
 /** Remove sales_data rows for calendar year. */

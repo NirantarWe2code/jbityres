@@ -32,40 +32,45 @@ class Auth
             if (defined('DEBUG_MODE') && DEBUG_MODE && ($clientIp === '0.0.0.0' || $clientIp === '')) {
                 error_log('getClientIp failed. REMOTE_ADDR=' . ($_SERVER['REMOTE_ADDR'] ?? 'null'));
             }
-            $params = [
-                'ipcheck' => $clientIp,
-            ];
-
-            $url = $apiBaseUrl . '?' . http_build_query($params);
-            //  $headers = ['Accept: application/json'];
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                // CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => json_encode($params),
-                //  CURLOPT_HTTPHEADER => $headers,
-                CURLOPT_TIMEOUT => 60,
-            ]);
-            $resp = curl_exec($ch);
-            $response = json_decode($resp, true);
-            //echo "API Response: <pre>";
-            //print_r($response);
-            if (
-                !isset($response['status']) ||
-                $response['status'] != true ||
-                $response['status'] != 1 ||
-                !isset($response['data']) ||
-                !is_array($response['data']) ||
-                count($response['data']) === 0
-            ) {
-                $error = 'IP restricted!';
-                error_log("IP restricted! " . json_encode($response));
-                return [
-                    'success' => false,
-                    'message' => 'IP restricted!' . $clientIp
+            // Strict security: always enforce IP-check at login.
+            $ipCheckEnabled = true;
+            $ipBypassList = [];
+            if ($ipCheckEnabled && !in_array($clientIp, $ipBypassList, true)) {
+                $params = [
+                    'ipcheck' => $clientIp,
                 ];
+
+                $url = $apiBaseUrl . '?' . http_build_query($params);
+                //  $headers = ['Accept: application/json'];
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    // CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => json_encode($params),
+                    //  CURLOPT_HTTPHEADER => $headers,
+                    CURLOPT_TIMEOUT => 60,
+                ]);
+                $resp = curl_exec($ch);
+                $response = json_decode($resp, true);
+                //echo "API Response: <pre>";
+                //print_r($response);
+                if (
+                    !isset($response['status']) ||
+                    $response['status'] != true ||
+                    $response['status'] != 1 ||
+                    !isset($response['data']) ||
+                    !is_array($response['data']) ||
+                    count($response['data']) === 0
+                ) {
+                    $error = 'IP restricted!';
+                    error_log("IP restricted! " . json_encode($response));
+                    return [
+                        'success' => false,
+                        'message' => 'IP restricted!' . $clientIp
+                    ];
+                }
+                curl_close($ch);
             }
-            curl_close($ch);
             // Get user from database (prepared statement - prevents SQL injection)
             // totp_secret, totp_enabled added for 2FA - run database/users_totp.sql if columns missing
             $sql = "SELECT id, username, password, full_name, email, role, status, 
@@ -104,7 +109,14 @@ class Auth
                 ];
             }
 
-            // If 2FA/TOTP is enabled, require OTP before completing login
+            // Strict security: authenticator is mandatory for all users at login.
+            if (empty($user['totp_enabled']) || empty($user['totp_secret'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Authenticator setup is required. Please contact admin to enable 2FA for your account.'
+                ];
+            }
+
             if (!empty($user['totp_enabled']) && !empty($user['totp_secret'])) {
                 return [
                     'success' => false,
@@ -558,6 +570,8 @@ class Auth
         $_SESSION['role'] = $user['role'];
         $_SESSION['login_time'] = time();
         $_SESSION['totp_enabled'] = !empty($user['totp_enabled']);
+        // Marks that full login flow completed successfully.
+        $_SESSION['auth_verified'] = true;
     }
 
     /**
