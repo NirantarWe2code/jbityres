@@ -122,11 +122,13 @@ if ($custAnalytics) {
             <?php endforeach; ?>
           </div>
         </div>
-        <button type="submit" style="background:<?= h($C['teal']) ?>;color:<?= h($C['text']) ?>;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;margin-top:2px">Apply</button>
+        <button type="submit" class="jbi-apply-btn" style="background:<?= h($C['teal']) ?>;color:<?= h($C['bg']) ?>;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;margin-top:2px;transition:filter 0.15s ease,transform 0.1s ease">Apply</button>
         <span style="font-size:10px;font-weight:700;color:<?= h($C['text']) ?>;max-width:200px;line-height:1.35;padding-top:4px">Tick years to compare, then Apply. No ticks + Apply = show all years.</span>
       </form>
       <style>
-        .jbi-year-picker__panel .jbi-year-picker__row:hover { background: <?= h($C['bg']) ?>33; }
+        .jbi-year-picker__panel .jbi-year-picker__row:hover { background: rgba(148, 163, 184, 0.08); }
+        .jbi-apply-btn:hover { filter: brightness(1.08); }
+        .jbi-apply-btn:focus-visible { outline: 2px solid <?= h($C['teal']) ?>; outline-offset: 2px; }
       </style>
       <script>
       (function () {
@@ -166,22 +168,22 @@ if ($custAnalytics) {
         <form method="post" action="process.php" style="margin:0">
           <input type="hidden" name="action" value="set_quick_filter">
           <input type="hidden" name="quick_filter" value="1m">
-          <button type="submit" style="background:<?= $quickFilter === '1m' ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '1m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">1 Month</button>
+          <button type="submit" style="background:<?= $quickFilter === '1m' ? h($C['tealSoft']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '1m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>;transition:background 0.15s ease,border-color 0.15s ease">1 Month</button>
         </form>
         <form method="post" action="process.php" style="margin:0">
           <input type="hidden" name="action" value="set_quick_filter">
           <input type="hidden" name="quick_filter" value="3m">
-          <button type="submit" style="background:<?= $quickFilter === '3m' ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '3m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">3 Months</button>
+          <button type="submit" style="background:<?= $quickFilter === '3m' ? h($C['tealSoft']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '3m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>;transition:background 0.15s ease,border-color 0.15s ease">3 Months</button>
         </form>
         <form method="post" action="process.php" style="margin:0">
           <input type="hidden" name="action" value="set_quick_filter">
           <input type="hidden" name="quick_filter" value="6m">
-          <button type="submit" style="background:<?= $quickFilter === '6m' ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '6m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">6 Months</button>
+          <button type="submit" style="background:<?= $quickFilter === '6m' ? h($C['tealSoft']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === '6m' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>;transition:background 0.15s ease,border-color 0.15s ease">6 Months</button>
         </form>
         <form method="post" action="process.php" style="margin:0">
           <input type="hidden" name="action" value="set_quick_filter">
           <input type="hidden" name="quick_filter" value="year">
-          <button type="submit" style="background:<?= $quickFilter === 'year' ? h($C['teal']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === 'year' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>">Year</button>
+          <button type="submit" style="background:<?= $quickFilter === 'year' ? h($C['tealSoft']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $quickFilter === 'year' ? h($C['teal']) : h($C['dim']) ?>;border-radius:999px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:700;<?= h($stylesMono) ?>;transition:background 0.15s ease,border-color 0.15s ease">Year</button>
         </form>
       </div>
     <?php endif; ?>
@@ -206,9 +208,13 @@ if ($custAnalytics) {
 <!-- Nav -->
 <style>
   .jbi-view-btn:hover {
-    background: <?= h($C['tealDim']) ?> !important;
-    border-color: <?= h($C['tealDim']) ?> !important;
-    color: #ffffff !important;
+    background: <?= h($C['tealSoft']) ?> !important;
+    border-color: <?= h($C['teal']) ?> !important;
+    color: <?= h($C['text']) ?> !important;
+  }
+  .jbi-view-btn:focus-visible {
+    outline: 2px solid <?= h($C['teal']) ?>;
+    outline-offset: 2px;
   }
 </style>
 <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
@@ -227,7 +233,7 @@ if ($custAnalytics) {
     <form method="post" action="process.php" style="margin:0">
       <input type="hidden" name="action" value="set_view">
       <input type="hidden" name="view" value="<?= h($vk) ?>">
-      <button type="submit" class="jbi-view-btn" style="background:<?= $view === $vk ? h($C['tealDim']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $view === $vk ? h($C['tealDim']) : h($C['dim']) ?>;border-radius:8px;padding:6px 16px;cursor:pointer;font-size:12px;font-weight:700;<?= h($stylesSans) ?>"><?= h($lbl) ?></button>
+      <button type="submit" class="jbi-view-btn" style="background:<?= $view === $vk ? h($C['tealSoft']) : 'transparent' ?>;color:<?= h($C['text']) ?>;border:1px solid <?= $view === $vk ? h($C['teal']) : h($C['dim']) ?>;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:12px;font-weight:600;<?= h($stylesSans) ?>;box-shadow:<?= $view === $vk ? 'inset 0 -2px 0 0 ' . h($C['teal']) : 'none' ?>;transition:background 0.15s ease,border-color 0.15s ease,box-shadow 0.15s ease"><?= h($lbl) ?></button>
     </form>
   <?php endforeach; ?>
 </div>
@@ -237,7 +243,7 @@ if ($custAnalytics) {
 <div style="display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap;align-items:stretch">
   <?php
     $kpi = function (string $title, ?string $tagline, string $value, ?string $sub, string $color, ?float $trend) use ($C, $stylesSans, $stylesMono) {
-        echo '<div style="background:' . h($C['card']) . ';border:1px solid ' . h($C['border']) . ';border-radius:14px;padding:22px 22px 24px;flex:1 1 168px;min-width:168px;max-width:100%;border-top:3px solid ' . h($color) . ';display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,0.18)">';
+        echo '<div style="background:' . h($C['card']) . ';border:1px solid ' . h($C['border']) . ';border-radius:14px;padding:24px 22px 26px;flex:1 1 168px;min-width:168px;max-width:100%;border-top:3px solid ' . h($color) . ';display:flex;flex-direction:column;box-shadow:0 4px 22px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.04)">';
         echo '<div style="margin-bottom:12px;' . h($stylesSans) . '">';
         echo '<div style="font-size:14px;font-weight:600;color:#e2e8f0;letter-spacing:-0.01em;line-height:1.25">' . h($title) . '</div>';
         if ($tagline !== null && $tagline !== '') {
@@ -250,7 +256,8 @@ if ($custAnalytics) {
         }
         if ($trend !== null) {
             $tc = $trend >= 0 ? $C['green'] : $C['rose'];
-            echo '<div style="font-size:12px;margin-top:8px;color:' . h($tc) . ';font-weight:600;' . h($stylesMono) . '">' . ($trend >= 0 ? '▲' : '▼') . ' ' . number_format(abs($trend), 1) . '% vs previous year</div>';
+            $chipBg = $trend >= 0 ? 'rgba(92, 153, 144, 0.16)' : 'rgba(244, 63, 94, 0.12)';
+            echo '<div style="display:inline-block;margin-top:10px;padding:5px 11px;border-radius:999px;background:' . h($chipBg) . ';font-size:12px;color:' . h($tc) . ';font-weight:600;' . h($stylesMono) . '">' . ($trend >= 0 ? '▲' : '▼') . ' ' . number_format(abs($trend), 1) . '% vs previous year</div>';
         }
         echo '</div>';
     };
@@ -266,7 +273,7 @@ if ($custAnalytics) {
 
 <?php if ($view === 'overview' && $latestData): ?>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-  <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:20px;grid-column:1/-1">
+  <div style="background:<?= h($C['card']) ?>;border:1px solid <?= h($C['border']) ?>;border-radius:12px;padding:20px;grid-column:1/-1;box-shadow:0 4px 20px rgba(0,0,0,0.2),inset 0 1px 0 rgba(255,255,255,0.03)">
     <div style="margin-bottom:16px">
       <div style="font-size:13px;font-weight:700;color:<?= h($C['text']) ?>;letter-spacing:0.06em;text-transform:uppercase;<?= h($stylesSans) ?>">Monthly Revenue (ex-GST)</div>
       <div style="font-size:11px;color:<?= h($C['muted']) ?>;margin-top:2px;<?= h($stylesSans) ?>">All loaded years</div>

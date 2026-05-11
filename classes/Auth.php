@@ -109,15 +109,24 @@ class Auth
                 ];
             }
 
-            // Strict security: authenticator is mandatory for all users at login.
-            if (empty($user['totp_enabled']) || empty($user['totp_secret'])) {
-                return [
-                    'success' => false,
-                    'message' => 'Authenticator setup is required. Please contact admin to enable 2FA for your account.'
-                ];
-            }
-
+            // 2FA enabled in DB: require OTP before creating a session (unless OTP step is disabled).
             if (!empty($user['totp_enabled']) && !empty($user['totp_secret'])) {
+                if (defined('LOGIN_OTP_ENABLED') && !LOGIN_OTP_ENABLED) {
+                    unset($user['password'], $user['totp_secret']);
+                    $this->updateLastLogin($user['id']);
+                    $this->setUserSession($user);
+                    return [
+                        'success' => true,
+                        'message' => 'Login successful',
+                        'user' => [
+                            'id' => $user['id'],
+                            'username' => $user['username'],
+                            'full_name' => $user['full_name'],
+                            'email' => $user['email'],
+                            'role' => $user['role']
+                        ]
+                    ];
+                }
                 return [
                     'success' => false,
                     'need_otp' => true,
@@ -126,10 +135,22 @@ class Auth
                 ];
             }
 
-            // Update last login
-            $this->updateLastLogin($user['id']);
+            // Org requires 2FA: do not create a session until setup_2fa establishes TOTP (or OTP step after).
+            if (defined('TWO_FACTOR_REQUIRED') && TWO_FACTOR_REQUIRED) {
+                $needsTotpSetup = empty($user['totp_enabled']) || empty($user['totp_secret']);
+                if ($needsTotpSetup) {
+                    return [
+                        'success' => false,
+                        'need_totp_setup' => true,
+                        'message' => 'Authenticator setup required',
+                        'pending_user_id' => (int) $user['id']
+                    ];
+                }
+            }
 
-            // Set session
+            // Optional 2FA mode: password login completes here.
+            unset($user['password'], $user['totp_secret']);
+            $this->updateLastLogin($user['id']);
             $this->setUserSession($user);
 
             return [
@@ -194,6 +215,52 @@ class Auth
         } catch (Exception $e) {
             error_log('OTP verify error: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Verification failed. Please try again.'];
+        }
+    }
+
+    /**
+     * Create session after password check when TOTP is not yet configured (pending enrollment flow).
+     * Called from setup_2fa.php only after valid pending_totp_setup_* session keys from login.
+     */
+    public function establishEnrollmentSession($userId)
+    {
+        try {
+            $userId = (int) $userId;
+            $sql = "SELECT id, username, password, full_name, email, role, status, totp_secret, totp_enabled 
+                    FROM users WHERE id = ? AND status = 'active'";
+            try {
+                $user = $this->db->fetchOne($sql, [$userId]);
+            } catch (Throwable $e) {
+                if (strpos((string) $e->getMessage(), 'totp_') !== false || strpos((string) $e->getMessage(), '1054') !== false) {
+                    $sql = "SELECT id, username, password, full_name, email, role, status 
+                            FROM users WHERE id = ? AND status = 'active'";
+                    $user = $this->db->fetchOne($sql, [$userId]);
+                    if ($user) {
+                        $user['totp_secret'] = null;
+                        $user['totp_enabled'] = 0;
+                    }
+                } else {
+                    throw $e;
+                }
+            }
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found or inactive.'];
+            }
+            if (!empty($user['totp_enabled']) && !empty($user['totp_secret'])) {
+                return [
+                    'success' => false,
+                    'code' => 'otp_required',
+                    'message' => 'Authenticator is already enabled. Please enter your OTP at login.',
+                    'pending_user_id' => (int) $user['id'],
+                ];
+            }
+            unset($user['password'], $user['totp_secret']);
+            $this->updateLastLogin($user['id']);
+            $this->setUserSession($user);
+            return ['success' => true];
+        } catch (Exception $e) {
+            error_log('establishEnrollmentSession: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Could not start setup. Please try again.'];
         }
     }
 

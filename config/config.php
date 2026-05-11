@@ -24,6 +24,8 @@ define('DB_NAME', env('DB_NAME', 'sales'));
 define('APP_NAME', env('APP_NAME', 'Final Report System'));
 define('APP_VERSION', env('APP_VERSION', '1.0.0'));
 define('BASE_URL', env('BASE_URL', 'http://localhost/jbityres'));
+/** Landing URL after login / 2FA (override with POST_LOGIN_REDIRECT in .env) */
+define('POST_LOGIN_REDIRECT', env('POST_LOGIN_REDIRECT', BASE_URL . '/pages/jbi-dashboard/index.php'));
 
 // Security Configuration
 define('SESSION_TIMEOUT', (int) env('SESSION_TIMEOUT', 3600));
@@ -46,22 +48,24 @@ define('ROLE_SUPER_ADMIN', env('ROLE_SUPER_ADMIN', 'super_admin'));
 define('ROLE_ADMIN', env('ROLE_ADMIN', 'admin'));
 define('ROLE_USER', env('ROLE_USER', 'user'));
 
-// Dashboard Colors (now loaded from environment)
+// Dashboard Colors — deeper surfaces, clearer accents (readable, simple; not washed-out)
 define('DASHBOARD_COLORS', [
-    'bg' => env('DASHBOARD_BG', '#1a1a1a'),
-    'surface' => env('DASHBOARD_SURFACE', '#2d2d2d'),
-    'card' => env('DASHBOARD_CARD', '#363636'),
-    'border' => env('DASHBOARD_BORDER', '#404040'),
+    'bg' => env('DASHBOARD_BG', '#0b1120'),
+    'surface' => env('DASHBOARD_SURFACE', '#141c2c'),
+    'card' => env('DASHBOARD_CARD', '#1a2744'),
+    'border' => env('DASHBOARD_BORDER', '#2f3d52'),
     'teal' => env('DASHBOARD_TEAL', '#14b8a6'),
-    'teal_dim' => env('DASHBOARD_TEAL_DIM', 'rgba(20, 184, 166, 0.1)'),
+    'teal_dim' => env('DASHBOARD_TEAL_DIM', 'rgba(20, 184, 166, 0.14)'),
+    'teal_dark' => env('DASHBOARD_TEAL_DARK', '#0d9488'),
+    'teal_soft' => env('DASHBOARD_TEAL_SOFT', 'rgba(20, 184, 166, 0.1)'),
     'gold' => env('DASHBOARD_GOLD', '#f59e0b'),
     'rose' => env('DASHBOARD_ROSE', '#f43f5e'),
-    'blue' => env('DASHBOARD_BLUE', '#3b82f6'),
-    'purple' => env('DASHBOARD_PURPLE', '#8b5cf6'),
-    'green' => env('DASHBOARD_GREEN', '#10b981'),
+    'blue' => env('DASHBOARD_BLUE', '#7a8fa4'),
+    'purple' => env('DASHBOARD_PURPLE', '#697586'),
+    'green' => env('DASHBOARD_GREEN', '#5c9990'),
     'text' => env('DASHBOARD_TEXT', '#f8fafc'),
-    'muted' => '#94a3b8',
-    'dim' => '#64748b'
+    'muted' => env('DASHBOARD_MUTED', '#94a3b8'),
+    'dim' => env('DASHBOARD_DIM', '#64748b'),
 ]);
 
 // Debug Mode (set to false in production)
@@ -161,6 +165,20 @@ function hasPermission($permission)
     ];
 
     return in_array($permission, $rolePermissions[$user['role']] ?? []);
+}
+
+/**
+ * After login: send users who still must enroll 2FA to setup_2fa.php (same rule as requireAuth).
+ * Call only when isLoggedIn() is true (e.g. from login.php / index.php entry redirects).
+ */
+function redirect_logged_in_user_home(): void
+{
+    if (defined('TWO_FACTOR_REQUIRED') && TWO_FACTOR_REQUIRED && empty($_SESSION['totp_enabled'])) {
+        header('Location: ' . BASE_URL . '/setup_2fa.php');
+        exit;
+    }
+    header('Location: ' . POST_LOGIN_REDIRECT);
+    exit;
 }
 
 /**

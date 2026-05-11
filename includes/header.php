@@ -18,6 +18,9 @@ $pageTitle = $pageTitle ?? 'Dashboard';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($pageTitle); ?> - <?php echo APP_NAME; ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -36,15 +39,22 @@ $pageTitle = $pageTitle ?? 'Dashboard';
             --border-color: <?php echo DASHBOARD_COLORS['border']; ?>;
             --text-color: <?php echo DASHBOARD_COLORS['text']; ?>;
             --muted-color: <?php echo DASHBOARD_COLORS['muted']; ?>;
+            --dim-color: <?php echo DASHBOARD_COLORS['dim']; ?>;
             --teal-color: <?php echo DASHBOARD_COLORS['teal']; ?>;
+            --teal-dim: <?php echo DASHBOARD_COLORS['teal_dim']; ?>;
+            --teal-dark: <?php echo DASHBOARD_COLORS['teal_dark']; ?>;
+            --teal-soft: <?php echo DASHBOARD_COLORS['teal_soft']; ?>;
             --gold-color: <?php echo DASHBOARD_COLORS['gold']; ?>;
             --rose-color: <?php echo DASHBOARD_COLORS['rose']; ?>;
             --blue-color: <?php echo DASHBOARD_COLORS['blue']; ?>;
+            --purple-color: <?php echo DASHBOARD_COLORS['purple']; ?>;
+            --green-color: <?php echo DASHBOARD_COLORS['green']; ?>;
         }
         
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
+            font-family: Inter, 'Segoe UI', system-ui, sans-serif;
         }
         
         .main-sidebar {
@@ -72,16 +82,26 @@ $pageTitle = $pageTitle ?? 'Dashboard';
         
         .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link {
             color: var(--muted-color);
+            border-radius: 8px;
+            margin: 2px 8px;
+            transition: background-color 0.15s ease, color 0.15s ease;
         }
         
         .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link:hover {
-            background-color: var(--card-color);
+            background-color: rgba(148, 163, 184, 0.08);
             color: var(--text-color);
         }
         
         .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active {
-            background-color: var(--teal-color);
-            color: white;
+            background-color: var(--teal-dim);
+            color: var(--text-color);
+            border-left: 3px solid var(--teal-color);
+            font-weight: 600;
+        }
+        
+        .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link:focus-visible {
+            outline: 2px solid var(--teal-color);
+            outline-offset: 2px;
         }
         
         .table-dark {
@@ -97,11 +117,24 @@ $pageTitle = $pageTitle ?? 'Dashboard';
         .btn-primary {
             background-color: var(--teal-color);
             border-color: var(--teal-color);
+            color: var(--bg-color);
+            font-weight: 600;
         }
         
         .btn-primary:hover {
-            background-color: #0f9488;
-            border-color: #0f9488;
+            background-color: var(--teal-dark);
+            border-color: var(--teal-dark);
+            color: var(--text-color);
+        }
+        
+        .btn-primary:focus-visible {
+            box-shadow: 0 0 0 3px var(--teal-soft);
+        }
+        
+        .main-header.navbar .nav-link:focus-visible {
+            outline: 2px solid var(--teal-color);
+            outline-offset: 2px;
+            border-radius: 4px;
         }
     </style>
     
@@ -150,7 +183,7 @@ $pageTitle = $pageTitle ?? 'Dashboard';
         <!-- Main Sidebar Container -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
-            <a href="<?php echo BASE_URL; ?>/pages/dashboard/index.php" class="brand-link">
+            <a href="<?php echo htmlspecialchars(POST_LOGIN_REDIRECT); ?>" class="brand-link">
                 <i class="fas fa-chart-line brand-image"></i>
                 <span class="brand-text font-weight-light"><?php echo APP_NAME; ?></span>
             </a>
@@ -227,7 +260,7 @@ $pageTitle = $pageTitle ?? 'Dashboard';
                                         <?php endif; ?>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <li class="breadcrumb-item"><a href="<?php echo BASE_URL; ?>/pages/dashboard/index.php">Home</a></li>
+                                    <li class="breadcrumb-item"><a href="<?php echo htmlspecialchars(POST_LOGIN_REDIRECT); ?>">Home</a></li>
                                     <li class="breadcrumb-item active"><?php echo htmlspecialchars($pageTitle); ?></li>
                                 <?php endif; ?>
                             </ol>

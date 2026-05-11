@@ -25,7 +25,7 @@ window.addEventListener('load', function() {
     }
 
     var CHART_TEXT = '#F8FAFC';
-    var CHART_GRID = 'rgba(148, 163, 184, 0.35)';
+    var CHART_GRID = 'rgba(148, 163, 184, 0.22)';
 
     document.querySelectorAll('canvas.dashboard-chart').forEach(function(canvas) {
         var id = canvas.dataset.chartId;
@@ -82,7 +82,10 @@ window.addEventListener('load', function() {
                             ds.borderWidth = Math.max(1.2, Number(ds.borderWidth || 0));
                             ds.borderSkipped = false;
                             if (!ds.borderColor) {
-                                ds.borderColor = 'rgba(248, 250, 252, 0.25)';
+                                ds.borderColor = 'rgba(248, 250, 252, 0.2)';
+                            }
+                            if (ds.borderRadius === undefined) {
+                                ds.borderRadius = 5;
                             }
                         }
                     });
@@ -100,7 +103,7 @@ JS;
 include __DIR__ . '/../../includes/header.php';
 ?>
 
-<div id="jbi-dashboard-loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,15,30,0.85);z-index:1050;display:flex;align-items:center;justify-content:center;">
+<div id="jbi-dashboard-loader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(11,17,32,0.94);z-index:1050;display:flex;align-items:center;justify-content:center;">
     <div class="text-center text-white">
         <div class="spinner-border text-light" role="status">
             <span class="visually-hidden">Loading...</span>

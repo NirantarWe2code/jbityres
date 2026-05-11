@@ -8,25 +8,58 @@ declare(strict_types=1);
 const DASHBOARD_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const DASHBOARD_C = [
-    'bg' => '#0F172A',
-    'surface' => '#16213A',
-    'card' => '#1D2A45',
-    'border' => '#2F436A',
-    'teal' => '#0EA5A2',
-    'tealDim' => '#0B7F7D',
-    'gold' => '#F59E0B',
-    'rose' => '#EF7373',
-    'blue' => '#3B5FA3',
-    'purple' => '#8B93F8',
-    'green' => '#2FBF8F',
-    'text' => '#F8FAFC',
-    'muted' => '#DCE6F5',
-    'dim' => '#B9C8E4',
+    'bg' => '#0b1120',
+    'surface' => '#141c2c',
+    'card' => '#1a2744',
+    'border' => '#2f3d52',
+    'teal' => '#14b8a6',
+    'tealDim' => '#0d9488',
+    'tealSoft' => 'rgba(20, 184, 166, 0.1)',
+    'gold' => '#f59e0b',
+    'rose' => '#f43f5e',
+    'blue' => '#7a8fa4',
+    'purple' => '#697586',
+    'green' => '#5c9990',
+    'text' => '#f8fafc',
+    'muted' => '#94a3b8',
+    'dim' => '#64748b',
 ];
 
-const YEAR_COLORS = ['#00D4C8', '#FFB74D', '#60A5FA', '#A78BFA', '#34D399'];
+const YEAR_COLORS = ['#14b8a6', '#f59e0b', '#7a8fa4', '#697586', '#5c9990'];
 
-const BRAND_COLORS = ['#00D4C8', '#FFB74D', '#60A5FA', '#A78BFA', '#34D399', '#F87171', '#FB923C', '#E879F9'];
+const BRAND_COLORS = ['#14b8a6', '#f59e0b', '#7a8fa4', '#697586', '#5c9990', '#f43f5e', '#d4a574', '#7d8494'];
+
+/**
+ * JBI inline styles use the same palette as the app shell (DASHBOARD_COLORS) when config is loaded.
+ *
+ * @return array<string, string>
+ */
+function dashboard_resolved_colors(): array
+{
+    $c = DASHBOARD_C;
+    if (!defined('DASHBOARD_COLORS')) {
+        return $c;
+    }
+    $m = DASHBOARD_COLORS;
+
+    return array_merge($c, [
+        'bg' => $m['bg'],
+        'surface' => $m['surface'],
+        'card' => $m['card'],
+        'border' => $m['border'],
+        'teal' => $m['teal'],
+        'tealDim' => $m['teal_dark'] ?? $c['tealDim'],
+        'tealSoft' => $m['teal_soft'] ?? $c['tealSoft'],
+        'gold' => $m['gold'],
+        'rose' => $m['rose'],
+        'blue' => $m['blue'],
+        'purple' => $m['purple'],
+        'green' => $m['green'],
+        'text' => $m['text'],
+        'muted' => $m['muted'],
+        'dim' => $m['dim'],
+    ]);
+}
 
 /**
  * Map spreadsheet header text → keys used by parse_sell_report() / sales_data.

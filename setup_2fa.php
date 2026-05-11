@@ -5,6 +5,31 @@
  */
 
 require_once __DIR__ . '/config/config.php';
+
+// Password verified at login but no session yet: pending keys allow first-time TOTP setup only.
+if (!isLoggedIn() && !empty($_SESSION['pending_totp_setup_user_id']) && isset($_SESSION['pending_totp_setup_time'])) {
+    $pendingMax = 900;
+    if ((time() - (int) $_SESSION['pending_totp_setup_time']) > $pendingMax) {
+        unset($_SESSION['pending_totp_setup_user_id'], $_SESSION['pending_totp_setup_time']);
+        header('Location: ' . BASE_URL . '/login.php?error=' . urlencode('Setup session expired. Please login again.'));
+        exit;
+    }
+    require_once __DIR__ . '/classes/Auth.php';
+    $auth = new Auth();
+    $establish = $auth->establishEnrollmentSession((int) $_SESSION['pending_totp_setup_user_id']);
+    unset($_SESSION['pending_totp_setup_user_id'], $_SESSION['pending_totp_setup_time']);
+    if (empty($establish['success'])) {
+        if (!empty($establish['code']) && $establish['code'] === 'otp_required' && !empty($establish['pending_user_id'])) {
+            $_SESSION['pending_2fa_user_id'] = (int) $establish['pending_user_id'];
+            $_SESSION['pending_2fa_time'] = time();
+            header('Location: ' . BASE_URL . '/login.php?step=otp');
+            exit;
+        }
+        header('Location: ' . BASE_URL . '/login.php?error=' . urlencode($establish['message'] ?? 'Setup could not start.'));
+        exit;
+    }
+}
+
 requireAuth();
 
 $pageTitle = 'Setup Two-Factor Authentication';
@@ -119,7 +144,7 @@ if ($has2FA && $step === 'setup' && empty($_POST)) {
                             </form>
                         <?php elseif ($step === 'done'): ?>
                             <p class="text-success"><i class="fas fa-check-circle me-2"></i>2FA is now enabled. Next login will require your authenticator code.</p>
-                            <a href="<?php echo BASE_URL; ?>/pages/dashboard/index.php" class="btn btn-primary">Go to Dashboard</a>
+                            <a href="<?php echo htmlspecialchars(POST_LOGIN_REDIRECT); ?>" class="btn btn-primary">Go to JBI Dashboard</a>
                         <?php elseif ($step === 'verify' && !empty($totpSecret)): ?>
                             <form method="POST">
                                 <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
@@ -157,8 +182,8 @@ if ($has2FA && $step === 'setup' && empty($_POST)) {
                                 <i class="fas fa-sign-out-alt me-1"></i>Login as different user
                             </a>
                             <?php if ($has2FA || $step === 'done'): ?>
-                            <a href="<?php echo BASE_URL; ?>/pages/dashboard/index.php" class="text-muted small">
-                                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                            <a href="<?php echo htmlspecialchars(POST_LOGIN_REDIRECT); ?>" class="text-muted small">
+                                <i class="fas fa-arrow-left me-1"></i>Back to JBI Dashboard
                             </a>
                             <?php endif; ?>
                         </div>

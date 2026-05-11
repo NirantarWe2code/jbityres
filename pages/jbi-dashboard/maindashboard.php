@@ -18,7 +18,7 @@ function h(?string $s): string
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-$C = DASHBOARD_C;
+$C = dashboard_resolved_colors();
 $stylesSans = "font-family:'Inter','Segoe UI','Helvetica Neue',Arial,sans-serif";
 $stylesMono = "font-family:'JetBrains Mono','Consolas','Courier New',monospace";
 

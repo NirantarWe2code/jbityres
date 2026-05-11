@@ -12,15 +12,15 @@ const TYRE_C = {
     gold: '#FFB74D',
     rose: '#F87171',
     blue: '#60A5FA',
-    purple: '#A78BFA',
+    purple: '#697586',
     green: '#34D399',
     text: '#E2E8F0',
     muted: '#64748B',
     dim: '#334155'
 };
 
-const YEAR_COLORS = ['#00D4C8', '#FFB74D', '#60A5FA', '#A78BFA', '#34D399'];
-const BRAND_COLORS = ['#00D4C8', '#FFB74D', '#60A5FA', '#A78BFA', '#34D399', '#F87171', '#FB923C', '#E879F9'];
+const YEAR_COLORS = ['#00D4C8', '#FFB74D', '#60A5FA', '#697586', '#34D399'];
+const BRAND_COLORS = ['#00D4C8', '#FFB74D', '#60A5FA', '#697586', '#34D399', '#F87171', '#FB923C', '#7d8494'];
 
 // Formulas from formulas.html
 function fmtAUD(v) {

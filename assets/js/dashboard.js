@@ -247,7 +247,7 @@ class Dashboard {
         
         // Generate colors
         const colors = [
-            '#14b8a6', '#f59e0b', '#f43f5e', '#8b5cf6', '#10b981'
+            '#14b8a6', '#f59e0b', '#f43f5e', '#697586', '#5c9990'
         ];
         
         // Create chart

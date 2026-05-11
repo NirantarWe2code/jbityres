@@ -717,7 +717,7 @@ function fetch_all_sales_data_for_year(int $year): array
          WHERE ' . $yearWhere . '
          ORDER BY id'
     );
-    $stmt->bind_param('ssii', $yearStr, $yearStr, $year, $year);
+    $stmt->bind_param('ssi', $yearStr, $yearStr, $year);
     $stmt->execute();
     $result = $stmt->get_result();
     $rows = $result->fetch_all(MYSQLI_ASSOC);
@@ -955,7 +955,7 @@ function fetch_sales_rows(int $year, int $limit, int $offset): array
         'SELECT COUNT(*) AS c FROM sales_data
          WHERE ' . $yearWhere
     );
-    $countSt->bind_param('ssii', $yearStr, $yearStr, $year, $year);
+    $countSt->bind_param('ssi', $yearStr, $yearStr, $year);
     $countSt->execute();
     $countResult = $countSt->get_result();
     $countRow = $countResult->fetch_assoc();
@@ -974,7 +974,7 @@ function fetch_sales_rows(int $year, int $limit, int $offset): array
          ORDER BY id DESC
          LIMIT ? OFFSET ?'
     );
-    $st->bind_param('ssiiii', $yearStr, $yearStr, $year, $year, $limit, $offset);
+    $st->bind_param('ssiii', $yearStr, $yearStr, $year, $limit, $offset);
     $st->execute();
     $result = $st->get_result();
     $rows = [];

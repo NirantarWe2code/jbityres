@@ -34,13 +34,13 @@ include __DIR__ . '/../../includes/header.php';
                 </div>
             </div>
             <div class="card-body">
-                <form id="userFilters" class="row">
+                <form id="userFilters" class="row g-3">
                     <div class="col-md-4">
                         <label for="searchTerm" class="form-label">Search</label>
                         <input type="text" class="form-control" id="searchTerm" name="search" 
                                placeholder="Username, name, email...">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="roleFilter" class="form-label">Role</label>
                         <select class="form-select" id="roleFilter" name="role">
                             <option value="">All Roles</option>
@@ -49,7 +49,7 @@ include __DIR__ . '/../../includes/header.php';
                             <option value="user">User</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="statusFilter" class="form-label">Status</label>
                         <select class="form-select" id="statusFilter" name="status">
                             <option value="">All Status</option>
@@ -57,9 +57,8 @@ include __DIR__ . '/../../includes/header.php';
                             <option value="inactive">Inactive</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
-                        <div>
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap gap-2 align-items-center pt-1">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search me-2"></i>Search
                             </button>

@@ -10,14 +10,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Redirect if already logged in
+// Redirect if already logged in (new users without TOTP go to 2FA setup when required)
 if (isLoggedIn()) {
-    header('Location: ' . BASE_URL . '/pages/dashboard/index.php');
-    exit;
+    redirect_logged_in_user_home();
 }
 
 $error = '';
 $success = '';
+if (!empty($_GET['error'])) {
+    $error = htmlspecialchars(urldecode((string) $_GET['error']), ENT_QUOTES, 'UTF-8');
+    if (strlen($error) > 500) {
+        $error = substr($error, 0, 500);
+    }
+}
 $step = $_GET['step'] ?? $_POST['step'] ?? 'credentials';
 $showOtpStep = false;
 
@@ -44,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['step'] ?? '') === 'otp') {
             $result = $auth->verifyOtpAndLogin($_SESSION['pending_2fa_user_id'], $otpCode);
             if ($result['success']) {
                 unset($_SESSION['pending_2fa_user_id'], $_SESSION['pending_2fa_time']);
-                header('Location: ' . BASE_URL . '/pages/dashboard/index.php');
+                header('Location: ' . POST_LOGIN_REDIRECT);
                 exit;
             }
             $error = $result['message'];
@@ -79,7 +84,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['step'] ?? '') !== 'otp') {
                 $result = $auth->login($username, $password);
 
                 if ($result['success']) {
-                    header('Location: ' . BASE_URL . '/pages/dashboard/index.php');
+                    if (defined('TWO_FACTOR_REQUIRED') && TWO_FACTOR_REQUIRED && empty($_SESSION['totp_enabled'])) {
+                        header('Location: ' . BASE_URL . '/setup_2fa.php');
+                        exit;
+                    }
+                    header('Location: ' . POST_LOGIN_REDIRECT);
+                    exit;
+                } elseif (!empty($result['need_totp_setup']) && !empty($result['pending_user_id'])) {
+                    $_SESSION['pending_totp_setup_user_id'] = (int) $result['pending_user_id'];
+                    $_SESSION['pending_totp_setup_time'] = time();
+                    header('Location: ' . BASE_URL . '/setup_2fa.php');
                     exit;
                 } elseif (!empty($result['need_otp']) && !empty($result['pending_user_id'])) {
                     $_SESSION['pending_2fa_user_id'] = $result['pending_user_id'];

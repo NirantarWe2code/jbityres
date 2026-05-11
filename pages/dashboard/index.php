@@ -107,7 +107,7 @@ include __DIR__ . '/../../includes/header.php';
     </div>
     
     <div class="col-lg-3 col-6">
-        <div class="card stats-card" style="background: linear-gradient(135deg, var(--purple-color), #7c3aed);">
+        <div class="card stats-card" style="background: linear-gradient(135deg, var(--purple-color), #4a5568);">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>

@@ -2,20 +2,27 @@
  * Custom Styles for Final Report System
  */
 
-/* Dark theme variables */
+/* Dark theme variables (defaults; pages with header.php override via DASHBOARD_COLORS) */
 :root {
-    --bg-color: #1a1a1a;
-    --surface-color: #2d2d2d;
-    --card-color: #363636;
-    --border-color: #404040;
+    --bg-color: #0b1120;
+    --surface-color: #141c2c;
+    --card-color: #1a2744;
+    --border-color: #2f3d52;
     --text-color: #f8fafc;
     --muted-color: #94a3b8;
+    --dim-color: #64748b;
     --teal-color: #14b8a6;
+    --teal-dark: #0d9488;
+    --teal-dim: rgba(20, 184, 166, 0.14);
+    --teal-soft: rgba(20, 184, 166, 0.1);
     --gold-color: #f59e0b;
+    --gold-dark: #d97706;
     --rose-color: #f43f5e;
-    --blue-color: #3b82f6;
-    --purple-color: #8b5cf6;
-    --green-color: #10b981;
+    --rose-dark: #e11d48;
+    --blue-color: #7a8fa4;
+    --purple-color: #697586;
+    --green-color: #5c9990;
+    --green-dark: #4a7d76;
 }
 
 /* General styles */
@@ -26,7 +33,7 @@ body {
 /* Card enhancements */
 .card {
     border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
     transition: transform 0.2s ease-in-out;
 }
 
@@ -41,8 +48,8 @@ body {
 
 /* Statistics cards */
 .stats-card {
-    background: linear-gradient(135deg, var(--teal-color), #0f9488);
-    color: white;
+    background: linear-gradient(135deg, var(--teal-color), var(--teal-dark));
+    color: var(--text-color);
     border: none;
 }
 
@@ -99,29 +106,29 @@ body {
     border-color: var(--border-color);
 }
 
-/* Striped rows - both odd & even with same readable white text */
+/* Striped rows — same palette as dashboard surfaces */
 .table-striped tbody tr td {
-    color: #f0fdfa !important;
+    color: var(--text-color) !important;
 }
 
 .table-striped tbody tr:nth-of-type(odd) td {
-    background-color: #2d2d2d !important;
-    color: #f0fdfa !important;
+    background-color: var(--surface-color) !important;
+    color: var(--text-color) !important;
 }
 
 .table-striped tbody tr:nth-of-type(even) td {
-    background-color: #363636 !important;
-    color: #f0fdfa !important;
+    background-color: var(--card-color) !important;
+    color: var(--text-color) !important;
 }
 
-/* Hover - light text on teal highlight */
+/* Hover — subtle highlight (less green/teal wash) */
 .table-hover tbody tr:hover {
-    background-color: rgba(20, 184, 166, 0.35) !important;
-    color: #f0fdfa !important;
+    background-color: rgba(148, 163, 184, 0.1) !important;
+    color: var(--text-color) !important;
 }
 
 .table-hover tbody tr:hover td {
-    color: #f0fdfa !important;
+    color: var(--text-color) !important;
 }
 
 .table-hover tbody tr:hover .btn {
@@ -141,22 +148,23 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--teal-color), #0f9488);
+    background: linear-gradient(135deg, var(--teal-color), var(--teal-dark));
     border: none;
 }
 
 .btn-success {
-    background: linear-gradient(135deg, var(--green-color), #059669);
+    background: linear-gradient(135deg, var(--green-color), var(--green-dark));
     border: none;
+    color: var(--text-color);
 }
 
 .btn-warning {
-    background: linear-gradient(135deg, var(--gold-color), #d97706);
+    background: linear-gradient(135deg, var(--gold-color), var(--gold-dark));
     border: none;
 }
 
 .btn-danger {
-    background: linear-gradient(135deg, var(--rose-color), #e11d48);
+    background: linear-gradient(135deg, var(--rose-color), var(--rose-dark));
     border: none;
 }
 
@@ -190,7 +198,7 @@ body {
 
 /* View modal - labels & values clearly visible */
 .modal-body .form-label {
-    color: #cbd5e1 !important;
+    color: var(--muted-color) !important;
     font-weight: 600;
     font-size: 0.8rem;
     text-transform: uppercase;
@@ -222,7 +230,7 @@ body {
 
 .form-control:focus {
     border-color: var(--teal-color);
-    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.25);
+    box-shadow: 0 0 0 0.15rem rgba(20, 184, 166, 0.18);
     background-color: var(--card-color);
     color: var(--text-color);
 }
@@ -236,7 +244,7 @@ body {
 
 .form-select:focus {
     border-color: var(--teal-color);
-    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.25);
+    box-shadow: 0 0 0 0.15rem rgba(20, 184, 166, 0.18);
 }
 
 /* Badge enhancements */
@@ -252,7 +260,7 @@ body {
 
 .badge.badge-warning {
     background-color: var(--gold-color);
-    color: #000;
+    color: var(--bg-color);
 }
 
 .badge.badge-danger {
@@ -271,7 +279,7 @@ body {
 .pagination .page-link:hover {
     background-color: var(--teal-color);
     border-color: var(--teal-color);
-    color: white;
+    color: var(--bg-color);
 }
 
 .pagination .page-item.active .page-link {
@@ -281,7 +289,7 @@ body {
 
 /* Sidebar enhancements */
 .main-sidebar {
-    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.35);
 }
 
 .sidebar .nav-link {
@@ -291,17 +299,19 @@ body {
 }
 
 .sidebar .nav-link:hover {
-    background-color: rgba(20, 184, 166, 0.1);
+    background-color: var(--teal-soft);
 }
 
 .sidebar .nav-link.active {
-    background: linear-gradient(135deg, var(--teal-color), #0f9488);
-    color: white;
+    background: var(--teal-dim);
+    color: var(--text-color);
+    border-left: 3px solid var(--teal-color);
+    font-weight: 600;
 }
 
 /* Navbar enhancements */
 .navbar {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 /* Loading overlay */
