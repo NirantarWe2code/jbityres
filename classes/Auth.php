@@ -32,9 +32,8 @@ class Auth
             if (defined('DEBUG_MODE') && DEBUG_MODE && ($clientIp === '0.0.0.0' || $clientIp === '')) {
                 error_log('getClientIp failed. REMOTE_ADDR=' . ($_SERVER['REMOTE_ADDR'] ?? 'null'));
             }
-            // Strict security: always enforce IP-check at login.
-            $ipCheckEnabled = true;
-            $ipBypassList = [];
+            $ipCheckEnabled = defined('LOGIN_IP_CHECK_ENABLED') && LOGIN_IP_CHECK_ENABLED;
+            $ipBypassList = defined('LOGIN_IP_BYPASS_LIST') && is_array(LOGIN_IP_BYPASS_LIST) ? LOGIN_IP_BYPASS_LIST : [];
             if ($ipCheckEnabled && !in_array($clientIp, $ipBypassList, true)) {
                 $params = [
                     'ipcheck' => $clientIp,

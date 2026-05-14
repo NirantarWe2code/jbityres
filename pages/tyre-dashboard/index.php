@@ -50,13 +50,42 @@ include __DIR__ . '/../../includes/header.php';
 </div>
 
 <!-- KPI Cards -->
+<style>
+.tyre-kpi-info-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(148, 163, 184, 0.22);
+  color: #94a3b8;
+  cursor: help;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.tyre-kpi-info-btn:hover,
+.tyre-kpi-info-btn:focus-visible {
+  background: rgba(148, 163, 184, 0.38);
+  color: #e2e8f0;
+  outline: none;
+}
+</style>
 <div class="row mb-4" id="tyreKpiCards">
     <div class="col-lg-2 col-md-4 col-6 mb-3">
         <div class="card border-top border-primary border-3 h-100">
             <div class="card-body py-3">
                 <small class="text-muted text-uppercase d-block">Revenue ex-GST</small>
-                <h4 class="mb-0 text-primary" id="kpiRevenue">-</h4>
-                <small class="text-muted" id="kpiRevenueGst">inc-GST: -</small>
+                <div class="d-flex align-items-baseline flex-wrap gap-1 mb-0">
+                    <h4 class="mb-0 text-primary" id="kpiRevenue">-</h4>
+                    <button type="button" class="tyre-kpi-info-btn" id="kpiRevenueInfo" hidden aria-label="Show exact amount on hover"><span aria-hidden="true">i</span></button>
+                </div>
+                <small class="text-muted d-flex align-items-baseline flex-wrap gap-1 mt-1">
+                    <span id="kpiRevenueGst">inc-GST: -</span>
+                    <button type="button" class="tyre-kpi-info-btn" id="kpiRevenueGstInfo" hidden aria-label="Show exact inc-GST amount on hover"><span aria-hidden="true">i</span></button>
+                </small>
             </div>
         </div>
     </div>
@@ -64,7 +93,10 @@ include __DIR__ . '/../../includes/header.php';
         <div class="card border-top border-warning border-3 h-100">
             <div class="card-body py-3">
                 <small class="text-muted text-uppercase d-block">Gross Profit</small>
-                <h4 class="mb-0 text-warning" id="kpiProfit">-</h4>
+                <div class="d-flex align-items-baseline flex-wrap gap-1 mb-0">
+                    <h4 class="mb-0 text-warning" id="kpiProfit">-</h4>
+                    <button type="button" class="tyre-kpi-info-btn" id="kpiProfitInfo" hidden aria-label="Show exact amount on hover"><span aria-hidden="true">i</span></button>
+                </div>
                 <small class="text-muted" id="kpiMargin">Margin: -</small>
             </div>
         </div>
@@ -91,7 +123,10 @@ include __DIR__ . '/../../includes/header.php';
         <div class="card border-top border-success border-3 h-100">
             <div class="card-body py-3">
                 <small class="text-muted text-uppercase d-block">Avg Invoice</small>
-                <h4 class="mb-0 text-success" id="kpiAvgInvoice">-</h4>
+                <div class="d-flex align-items-baseline flex-wrap gap-1 mb-0">
+                    <h4 class="mb-0 text-success" id="kpiAvgInvoice">-</h4>
+                    <button type="button" class="tyre-kpi-info-btn" id="kpiAvgInvoiceInfo" hidden aria-label="Show exact amount on hover"><span aria-hidden="true">i</span></button>
+                </div>
                 <small class="text-muted">ex-GST</small>
             </div>
         </div>

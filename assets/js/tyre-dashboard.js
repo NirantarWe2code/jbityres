@@ -30,6 +30,15 @@ function fmtAUD(v) {
     if (abs >= 1e3) return 'A$' + (v / 1e3).toFixed(0) + 'K';
     return 'A$' + v.toFixed(0);
 }
+/** Compact currency for KPI main display (same rules as fmtAUD). */
+const compactCurrency = fmtAUD;
+
+/** Full AUD for popovers: 2 decimals, comma thousands. */
+function fullCurrency(v) {
+    if (v == null || isNaN(v)) return '\u2014';
+    return 'A$' + Number(v).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function fmtAUDf(v) {
     if (v == null || isNaN(v)) return '\u2014';
     return 'A$' + v.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -50,6 +59,38 @@ function getMarginColor(margin) {
     if (m < 8) return TYRE_C.gold;
     if (m < 12) return TYRE_C.green;
     return TYRE_C.teal;
+}
+
+function initTyreKpiInfoBtn(btn, numericValue, titleText) {
+    if (!btn || typeof bootstrap === 'undefined' || !bootstrap.Popover) {
+        return;
+    }
+    const exact = fullCurrency(numericValue);
+    if (exact === '\u2014') {
+        btn.hidden = true;
+        const stale = bootstrap.Popover.getInstance(btn);
+        if (stale) {
+            stale.dispose();
+        }
+        return;
+    }
+    btn.hidden = false;
+    const existing = bootstrap.Popover.getInstance(btn);
+    if (existing) {
+        existing.dispose();
+    }
+    try {
+        new bootstrap.Popover(btn, {
+            trigger: 'hover focus',
+            placement: 'top',
+            container: 'body',
+            html: false,
+            sanitize: true,
+            title: titleText || 'Exact amount',
+            content: exact,
+            delay: { show: 0, hide: 80 }
+        });
+    } catch (e) { /* ignore */ }
 }
 
 class TyreDashboard {
@@ -128,14 +169,18 @@ class TyreDashboard {
     renderKPICards() {
         const t = this.data.totals || {};
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-        set('kpiRevenue', fmtAUD(t.revenue));
-        set('kpiRevenueGst', 'inc-GST: ' + fmtAUD(t.revenue_inc_gst));
-        set('kpiProfit', fmtAUD(t.profit));
+        set('kpiRevenue', compactCurrency(t.revenue));
+        set('kpiRevenueGst', 'inc-GST: ' + compactCurrency(t.revenue_inc_gst));
+        set('kpiProfit', compactCurrency(t.profit));
         set('kpiMargin', 'Margin: ' + fmtPct(t.margin));
         set('kpiUnits', fmtNum(Math.round(t.units)));
         set('kpiCustomers', (t.customers || 0) + ' customers');
         set('kpiInvoices', fmtNum(t.invoices));
-        set('kpiAvgInvoice', fmtAUD(t.avg_invoice));
+        set('kpiAvgInvoice', compactCurrency(t.avg_invoice));
+        initTyreKpiInfoBtn(document.getElementById('kpiRevenueInfo'), t.revenue, 'Exact amount (ex-GST)');
+        initTyreKpiInfoBtn(document.getElementById('kpiRevenueGstInfo'), t.revenue_inc_gst, 'Exact amount (inc-GST)');
+        initTyreKpiInfoBtn(document.getElementById('kpiProfitInfo'), t.profit, 'Exact gross profit');
+        initTyreKpiInfoBtn(document.getElementById('kpiAvgInvoiceInfo'), t.avg_invoice, 'Exact average (ex-GST)');
     }
 
     renderView() {
@@ -407,10 +452,3 @@ class TyreDashboard {
         if (areaTbody) areaTbody.innerHTML = areaHtml;
     }
 }
-
-$(document).ready(function() {
-    if (typeof TyreDashboard !== 'undefined') {
-        window.tyreDashboard = new TyreDashboard();
-        window.tyreDashboard.init();
-    }
-});

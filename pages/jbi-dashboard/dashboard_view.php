@@ -239,10 +239,18 @@ if ($custAnalytics) {
 </div>
 
 <?php if ($latestData): ?>
+<style>
+.jbi-kpi-info-btn:hover,
+.jbi-kpi-info-btn:focus-visible {
+  background: rgba(148, 163, 184, 0.32) !important;
+  color: #e2e8f0 !important;
+  outline: none;
+}
+</style>
 <!-- KPI row -->
 <div style="display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap;align-items:stretch">
   <?php
-    $kpi = function (string $title, ?string $tagline, string $value, ?string $sub, string $color, ?float $trend) use ($C, $stylesSans, $stylesMono) {
+    $kpi = function (string $title, ?string $tagline, string $value, ?string $sub, string $color, ?float $trend, ?string $exactMain = null, bool $subIsHtml = false) use ($C, $stylesSans, $stylesMono) {
         echo '<div style="background:' . h($C['card']) . ';border:1px solid ' . h($C['border']) . ';border-radius:14px;padding:24px 22px 26px;flex:1 1 168px;min-width:168px;max-width:100%;border-top:3px solid ' . h($color) . ';display:flex;flex-direction:column;box-shadow:0 4px 22px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.04)">';
         echo '<div style="margin-bottom:12px;' . h($stylesSans) . '">';
         echo '<div style="font-size:14px;font-weight:600;color:#e2e8f0;letter-spacing:-0.01em;line-height:1.25">' . h($title) . '</div>';
@@ -250,9 +258,14 @@ if ($custAnalytics) {
             echo '<div style="font-size:11px;font-weight:500;color:#94a3b8;margin-top:4px;line-height:1.35">' . h($tagline) . '</div>';
         }
         echo '</div>';
-        echo '<div style="font-size:30px;font-weight:700;color:' . h($color) . ';' . h($stylesMono) . ';line-height:1.05;letter-spacing:-0.02em;margin-top:auto">' . $value . '</div>';
+        echo '<div style="font-size:30px;font-weight:700;color:' . h($color) . ';' . h($stylesMono) . ';line-height:1.05;letter-spacing:-0.02em;margin-top:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+        echo '<span style="line-height:1.05">' . $value . '</span>';
+        if ($exactMain !== null && $exactMain !== '') {
+            echo jbi_kpi_exact_info_btn($exactMain);
+        }
+        echo '</div>';
         if ($sub) {
-            echo '<div style="font-size:13px;color:#cbd5e1;margin-top:10px;line-height:1.45;' . h($stylesSans) . '">' . h($sub) . '</div>';
+            echo '<div style="font-size:13px;color:#cbd5e1;margin-top:10px;line-height:1.45;' . h($stylesSans) . '">' . ($subIsHtml ? $sub : h($sub)) . '</div>';
         }
         if ($trend !== null) {
             $tc = $trend >= 0 ? $C['green'] : $C['rose'];
@@ -261,14 +274,41 @@ if ($custAnalytics) {
         }
         echo '</div>';
     };
-  $kpi('Revenue', 'Excluding GST · ' . (int) $latestYear, fmt_aud((float) $latestData['totals']['revenue']), 'Including GST ' . fmt_aud((float) $latestData['totals']['revenue'] * 1.1), $C['teal'], $yoyRev);
-  $kpi('Gross profit', (string) (int) $latestYear, fmt_aud((float) $latestData['totals']['profit']), 'GP margin ' . fmt_pct((float) $latestData['totals']['margin']), $C['gold'], $yoyProfit);
+  $revK = (float) $latestData['totals']['revenue'];
+  $revIncK = $revK * 1.1;
+  $subRevK = 'Including GST <span style="display:inline-flex;align-items:baseline;gap:6px;flex-wrap:wrap"><span>' . h(fmt_aud($revIncK)) . '</span>' . jbi_kpi_exact_info_btn(fmt_aud_full($revIncK)) . '</span>';
+  $kpi('Revenue', 'Excluding GST · ' . (int) $latestYear, fmt_aud($revK), $subRevK, $C['teal'], $yoyRev, fmt_aud_full($revK), true);
+  $kpi('Gross profit', (string) (int) $latestYear, fmt_aud((float) $latestData['totals']['profit']), 'GP margin ' . fmt_pct((float) $latestData['totals']['margin']), $C['gold'], $yoyProfit, fmt_aud_full((float) $latestData['totals']['profit']));
   $kpi('Units sold', 'Total quantity', fmt_num((float) round($latestData['totals']['units'])), 'Tyre units in period', $C['blue'], $yoyUnits);
   $kpi('Active customers', 'Distinct businesses', (string) (int) $latestData['totals']['customers'], fmt_num((float) $latestData['totals']['invoices']) . ' invoices in period', $C['purple'], null);
   $inv = (float) $latestData['totals']['invoices'];
-  $kpi('Avg invoice', 'Revenue ÷ invoices', fmt_aud($inv > 0 ? (float) $latestData['totals']['revenue'] / $inv : 0.0), 'Excluding GST', $C['green'], null);
+  $avgK = $inv > 0 ? $revK / $inv : 0.0;
+  $kpi('Avg invoice', 'Revenue ÷ invoices', fmt_aud($avgK), 'Excluding GST', $C['green'], null, fmt_aud_full($avgK));
   ?>
 </div>
+<script>
+(function () {
+  function initJbiKpiPopovers() {
+    if (typeof bootstrap === 'undefined' || !bootstrap.Popover) {
+      return;
+    }
+    document.querySelectorAll('.jbi-kpi-info-btn').forEach(function (el) {
+      if (el.getAttribute('data-jbi-popover-init') === '1') {
+        return;
+      }
+      el.setAttribute('data-jbi-popover-init', '1');
+      try {
+        new bootstrap.Popover(el);
+      } catch (e) { /* ignore */ }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initJbiKpiPopovers);
+  } else {
+    initJbiKpiPopovers();
+  }
+})();
+</script>
 <?php endif; ?>
 
 <?php if ($view === 'overview' && $latestData): ?>

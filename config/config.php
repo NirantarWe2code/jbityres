@@ -27,14 +27,63 @@ define('BASE_URL', env('BASE_URL', 'http://localhost/jbityres'));
 /** Landing URL after login / 2FA (override with POST_LOGIN_REDIRECT in .env) */
 define('POST_LOGIN_REDIRECT', env('POST_LOGIN_REDIRECT', BASE_URL . '/pages/jbi-dashboard/index.php'));
 
+/**
+ * True when the request looks like local dev (localhost / loopback / *.local).
+ * Used so login IP-check defaults off on XAMPP and on after deploy to a real host.
+ */
+function isLocalDevelopmentHost(): bool
+{
+    $hosts = [];
+    $push = function (string $raw) use (&$hosts): void {
+        $h = strtolower(trim($raw));
+        if ($h === '') {
+            return;
+        }
+        if (strpos($h, ':') !== false && ($h[0] ?? '') !== '[') {
+            $h = explode(':', $h, 2)[0];
+        }
+        $hosts[] = $h;
+    };
+
+    $buHost = parse_url((string) BASE_URL, PHP_URL_HOST);
+    if (is_string($buHost) && $buHost !== '') {
+        $push($buHost);
+    }
+    if (!empty($_SERVER['HTTP_HOST'])) {
+        $push(preg_replace('/:\d+$/', '', (string) $_SERVER['HTTP_HOST']));
+    }
+    if (!empty($_SERVER['SERVER_NAME'])) {
+        $push((string) $_SERVER['SERVER_NAME']);
+    }
+
+    foreach (array_unique($hosts) as $h) {
+        if ($h === 'localhost' || $h === '127.0.0.1' || $h === '::1' || $h === '[::1]') {
+            return true;
+        }
+        if (strlen($h) > 10 && substr($h, -10) === '.localhost') {
+            return true;
+        }
+        if (strlen($h) >= 6 && substr($h, -6) === '.local') {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Security Configuration
 define('SESSION_TIMEOUT', (int) env('SESSION_TIMEOUT', 3600));
 define('CSRF_TOKEN_NAME', env('CSRF_TOKEN_NAME', 'csrf_token'));
 define('TWO_FACTOR_REQUIRED', env('TWO_FACTOR_REQUIRED', 'true') === 'true');
 // Login flow gates (toggles)
-// - LOGIN_IP_CHECK_ENABLED: if false, skip IP restriction check during login
+// - LOGIN_IP_CHECK_ENABLED: if false, skip IP restriction check during login.
+//   Not set in .env: off on local dev host, on when deployed (real domain).
 // - LOGIN_OTP_ENABLED: if false, skip OTP challenge even if user has TOTP enabled
-define('LOGIN_IP_CHECK_ENABLED', env('LOGIN_IP_CHECK_ENABLED', 'true') === 'true');
+$_loginIpEnv = getenv('LOGIN_IP_CHECK_ENABLED');
+if ($_loginIpEnv !== false && $_loginIpEnv !== '') {
+    define('LOGIN_IP_CHECK_ENABLED', $_loginIpEnv === 'true');
+} else {
+    define('LOGIN_IP_CHECK_ENABLED', !isLocalDevelopmentHost());
+}
 define('LOGIN_OTP_ENABLED', env('LOGIN_OTP_ENABLED', 'true') === 'true');
 // Optional: comma-separated allowlist that bypasses IP restriction check (e.g. "1.2.3.4,5.6.7.8")
 define('LOGIN_IP_BYPASS_LIST', array_values(array_filter(array_map('trim', explode(',', (string) env('LOGIN_IP_BYPASS_LIST', ''))))));

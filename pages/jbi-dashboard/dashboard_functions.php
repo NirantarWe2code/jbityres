@@ -1009,6 +1009,28 @@ function fmt_aud(?float $v): string
     return 'A$' . number_format($v, 0, '.', '');
 }
 
+/**
+ * Full AUD for KPI tooltips: 2 decimals, comma thousands, A$ prefix (no K/M).
+ */
+function fmt_aud_full(?float $v): string
+{
+    if ($v === null) {
+        return '—';
+    }
+
+    return 'A$' . number_format($v, 2, '.', ',');
+}
+
+/**
+ * Small info control for KPI exact-value Bootstrap popover (caller passes plain text, escaped for attributes).
+ */
+function jbi_kpi_exact_info_btn(string $exactDisplay): string
+{
+    $attr = htmlspecialchars($exactDisplay, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+    return '<button type="button" class="jbi-kpi-info-btn" data-bs-toggle="popover" data-bs-trigger="hover focus click" data-bs-placement="top" data-bs-title="Exact amount" data-bs-content="' . $attr . '" aria-label="Show exact amount" style="border:none;background:rgba(148,163,184,0.18);color:#94a3b8;width:22px;height:22px;border-radius:999px;padding:0;line-height:1;font-size:11px;font-weight:800;cursor:help;vertical-align:middle;flex-shrink:0;font-family:Inter,\'Segoe UI\',sans-serif"><span style="display:block;transform:translateY(0.5px)" aria-hidden="true">i</span></button>';
+}
+
 function fmt_audf(?float $v): string
 {
     if ($v === null) {
