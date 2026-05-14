@@ -246,37 +246,65 @@ if ($custAnalytics) {
   color: #e2e8f0 !important;
   outline: none;
 }
+.popover.jbi-kpi-popover-mini {
+  max-width: none;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+.popover.jbi-kpi-popover-mini .popover-header {
+  display: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+.popover.jbi-kpi-popover-mini .popover-body {
+  padding: 5px 10px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  line-height: 1.25;
+}
+.popover.jbi-kpi-popover-mini.bs-popover-top > .popover-arrow {
+  bottom: -0.4rem;
+}
 </style>
-<!-- KPI row -->
-<div style="display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap;align-items:stretch">
+<!-- KPI row: stretch = equal card height; spacer pushes YoY chip to bottom without gap under title -->
+<div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;align-items:stretch">
   <?php
     $kpi = function (string $title, ?string $tagline, string $value, ?string $sub, string $color, ?float $trend, ?string $exactMain = null, bool $subIsHtml = false) use ($C, $stylesSans, $stylesMono) {
-        echo '<div style="background:' . h($C['card']) . ';border:1px solid ' . h($C['border']) . ';border-radius:14px;padding:24px 22px 26px;flex:1 1 168px;min-width:168px;max-width:100%;border-top:3px solid ' . h($color) . ';display:flex;flex-direction:column;box-shadow:0 4px 22px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.04)">';
-        echo '<div style="margin-bottom:12px;' . h($stylesSans) . '">';
+        echo '<div style="background:' . h($C['card']) . ';border:1px solid ' . h($C['border']) . ';border-radius:14px;padding:24px 22px 26px;flex:1 1 168px;min-width:168px;max-width:100%;border-top:3px solid ' . h($color) . ';display:flex;flex-direction:column;min-height:100%;box-shadow:0 4px 22px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.04)">';
+        echo '<div style="margin-bottom:0;flex-shrink:0;' . h($stylesSans) . '">';
         echo '<div style="font-size:14px;font-weight:600;color:#e2e8f0;letter-spacing:-0.01em;line-height:1.25">' . h($title) . '</div>';
         if ($tagline !== null && $tagline !== '') {
             echo '<div style="font-size:11px;font-weight:500;color:#94a3b8;margin-top:4px;line-height:1.35">' . h($tagline) . '</div>';
         }
         echo '</div>';
-        echo '<div style="font-size:30px;font-weight:700;color:' . h($color) . ';' . h($stylesMono) . ';line-height:1.05;letter-spacing:-0.02em;margin-top:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+        echo '<div style="font-size:30px;font-weight:700;color:' . h($color) . ';' . h($stylesMono) . ';line-height:1.05;letter-spacing:-0.02em;margin-top:10px;flex-shrink:0;display:flex;align-items:center;gap:2px;flex-wrap:wrap">';
+        echo '<span style="display:inline-flex;align-items:center;gap:2px;line-height:1.05">';
         echo '<span style="line-height:1.05">' . $value . '</span>';
         if ($exactMain !== null && $exactMain !== '') {
             echo jbi_kpi_exact_info_btn($exactMain);
         }
+        echo '</span>';
         echo '</div>';
         if ($sub) {
-            echo '<div style="font-size:13px;color:#cbd5e1;margin-top:10px;line-height:1.45;' . h($stylesSans) . '">' . ($subIsHtml ? $sub : h($sub)) . '</div>';
+            echo '<div style="font-size:13px;color:#cbd5e1;margin-top:8px;line-height:1.45;flex-shrink:0;' . h($stylesSans) . '">' . ($subIsHtml ? $sub : h($sub)) . '</div>';
         }
+        echo '<div style="flex:1 1 auto;min-height:0;width:100%" aria-hidden="true"></div>';
         if ($trend !== null) {
             $tc = $trend >= 0 ? $C['green'] : $C['rose'];
             $chipBg = $trend >= 0 ? 'rgba(92, 153, 144, 0.16)' : 'rgba(244, 63, 94, 0.12)';
-            echo '<div style="display:inline-block;margin-top:10px;padding:5px 11px;border-radius:999px;background:' . h($chipBg) . ';font-size:12px;color:' . h($tc) . ';font-weight:600;' . h($stylesMono) . '">' . ($trend >= 0 ? '▲' : '▼') . ' ' . number_format(abs($trend), 1) . '% vs previous year</div>';
+            echo '<div style="display:inline-block;margin-top:8px;flex-shrink:0;padding:5px 11px;border-radius:999px;background:' . h($chipBg) . ';font-size:12px;color:' . h($tc) . ';font-weight:600;' . h($stylesMono) . '">' . ($trend >= 0 ? '▲' : '▼') . ' ' . number_format(abs($trend), 1) . '% vs previous year</div>';
         }
         echo '</div>';
     };
   $revK = (float) $latestData['totals']['revenue'];
   $revIncK = $revK * 1.1;
-  $subRevK = 'Including GST <span style="display:inline-flex;align-items:baseline;gap:6px;flex-wrap:wrap"><span>' . h(fmt_aud($revIncK)) . '</span>' . jbi_kpi_exact_info_btn(fmt_aud_full($revIncK)) . '</span>';
+  $subRevK = 'Including GST <span style="display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap"><span>' . h(fmt_aud($revIncK)) . '</span>' . jbi_kpi_exact_info_btn(fmt_aud_full($revIncK)) . '</span>';
   $kpi('Revenue', 'Excluding GST · ' . (int) $latestYear, fmt_aud($revK), $subRevK, $C['teal'], $yoyRev, fmt_aud_full($revK), true);
   $kpi('Gross profit', (string) (int) $latestYear, fmt_aud((float) $latestData['totals']['profit']), 'GP margin ' . fmt_pct((float) $latestData['totals']['margin']), $C['gold'], $yoyProfit, fmt_aud_full((float) $latestData['totals']['profit']));
   $kpi('Units sold', 'Total quantity', fmt_num((float) round($latestData['totals']['units'])), 'Tyre units in period', $C['blue'], $yoyUnits);
@@ -288,6 +316,8 @@ if ($custAnalytics) {
 </div>
 <script>
 (function () {
+  var miniTemplate = '<div class="popover jbi-kpi-popover-mini" role="tooltip"><div class="popover-arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>';
+
   function initJbiKpiPopovers() {
     if (typeof bootstrap === 'undefined' || !bootstrap.Popover) {
       return;
@@ -297,8 +327,24 @@ if ($custAnalytics) {
         return;
       }
       el.setAttribute('data-jbi-popover-init', '1');
+      var content = el.getAttribute('data-bs-content') || '';
+      var existing = bootstrap.Popover.getInstance(el);
+      if (existing) {
+        existing.dispose();
+      }
       try {
-        new bootstrap.Popover(el);
+        new bootstrap.Popover(el, {
+          container: 'body',
+          placement: 'top',
+          trigger: 'hover focus',
+          html: false,
+          sanitize: true,
+          title: '',
+          content: content,
+          delay: { show: 0, hide: 80 },
+          offset: [0, 2],
+          template: miniTemplate
+        });
       } catch (e) { /* ignore */ }
     });
   }
